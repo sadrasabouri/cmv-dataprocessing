@@ -8,6 +8,7 @@ comments_path = sys.argv[2]
 deltas_path = sys.argv[3]
 output_path = sys.argv[4]
 
+# TODO: choosing pandas was a bad idea; good to replace
 print("Loading deltas ...", flush=True)
 deltas_df = pd.read_csv(deltas_path)
 print("Loading submissions ...", flush=True)
@@ -17,10 +18,15 @@ comments_df = pd.read_json(comments_path, lines=True)
 
 
 pid_cid2comment = {}
+pid2comment = {}
 for i, comment in tqdm(comments_df.iterrows(), desc="Making comment index files ..."):
     post_id = comment['link_id'].split('_')[-1]
     comment_id = comment['id']
     pid_cid2comment[(post_id, comment_id)] = i
+
+    if not post_id in pid2comment:
+        pid2comment[post_id] = []
+    pid2comment[post_id].append(i)
 
 def get_comment_by_id(post_id: str, comment_id: str):
     if (post_id, comment_id) not in pid_cid2comment:
@@ -100,8 +106,8 @@ def get_chat_hist(post_id: str, parent_id: str):
 
 dataset = []
 for i, post in tqdm(submissions_df.iterrows(), desc="Processing submissions ..."):
-    comments = comments_df[comments_df['link_id'] == f"t3_{post.id}"]
-    for j, comment in comments.iterrows():
+    comment_ids = pid2comment.get(post.id, [])
+    for j, comment in comments_df.iloc[comment_ids].iterrows():
         history, history_authors = get_chat_hist(post.id, comment.parent_id)
         conversation = [post.selftext, *history, comment.body]
         conversation_authors = [post.author, *history_authors, comment.author]
