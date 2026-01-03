@@ -29,7 +29,7 @@ def get_comment_by_id(post_id: str, comment_id: str):
     return comments_df.iloc[idx]
 
 
-# fix deltas possible issues
+# fix deltas possible issues (~66k of deltas out of 94k)
 # EXPLANATION: in some cases delta-log-bot reported delta to the comment which gives the delta not the one who gets it.
 #   the proxy I found for such instances are to find cases where the author of the comment is not the same as the author to which the delta is given (reported)
 if not os.path.exists(deltas_path+'.fixed'):
@@ -70,6 +70,8 @@ deltas = {}
 for i, delta in tqdm(deltas_df.iterrows(), desc="Making delta index files ..."):
     post_id = delta.post_id
     comment_id = delta.in_comment
+    if post_id is None or comment_id is None: # cases where comment is removed (~4k of deltas out of 94k)
+        continue
     if post_id.strip() == "" or comment_id.strip() == "":
         continue
     
