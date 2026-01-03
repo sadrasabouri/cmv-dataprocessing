@@ -78,8 +78,6 @@ for i, delta in tqdm(deltas_df.iterrows(), desc="Making delta index files ..."):
     comment_id = delta.in_comment
     if post_id is None or comment_id is None: # cases where comment is removed (~4k of deltas out of 94k)
         continue
-    if post_id.strip() == "" or comment_id.strip() == "":
-        continue
     
     if (post_id, comment_id) not in deltas:
         deltas[(post_id, comment_id)] = DELTA_DEFAULT.copy()
