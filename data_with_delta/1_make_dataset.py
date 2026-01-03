@@ -97,6 +97,10 @@ def get_chat_hist(post_id: str, parent_id: str):
     text, authors = [], []
     while not parent_id == f"t3_{post_id}":
         comment = get_comment_by_id(post_id, parent_id.split('_')[-1])
+        if comment is None:
+            text.insert(0, None)
+            authors.insert(0, None)
+            break
         text.insert(0, comment.body)
         authors.insert(0, comment.author)
         parent_id = comment.parent_id
