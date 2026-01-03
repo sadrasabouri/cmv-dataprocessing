@@ -122,6 +122,9 @@ for i, post in tqdm(submissions_df.iterrows(), desc="Processing submissions ..."
             delta_info['count'], delta_info['is_op_delta'],
         ])
 
+del submissions_df
+del comments_df
+
 pd.DataFrame.from_records(dataset,
                           columns=[
             "post_id", "post_title", "post_author", "post_url", "post_ups", "post_downs", "post_score", "post_created_utc",
