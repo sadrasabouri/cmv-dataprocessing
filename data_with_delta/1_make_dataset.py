@@ -16,16 +16,17 @@ print("Loading comments ...", flush=True)
 comments_df = pd.read_json(comments_path, lines=True)
 
 
+pid_cid2comment = {}
+for i, comment in tqdm(comments_df.iterrows(), desc="Making comment index files ..."):
+    post_id = comment['link_id'].split('_')[-1]
+    comment_id = comment['id']
+    pid_cid2comment[(post_id, comment_id)] = i
+
 def get_comment_by_id(post_id: str, comment_id: str):
-    the_comment = comments_df[
-        (comments_df['link_id'] == f"t3_{post_id}") &
-        (comments_df['id'] == comment_id)
-    ]
-    if len(the_comment) == 0:
+    if (post_id, comment_id) not in pid_cid2comment:
         return None
-    if len(the_comment) != 1:
-        print(f"[Error]: Multiple instances of post_id:{delta.post_id}, comment_id:{delta.in_comment}!")
-    return the_comment.iloc[0]
+    idx = pid_cid2comment[(post_id, comment_id)]
+    return comments_df.iloc[idx]
 
 
 # fix deltas possible issues
@@ -64,6 +65,27 @@ else:
     deltas_df = pd.read_csv(deltas_path+'.fixed')
 
 
+DELTA_DEFAULT = {"is_op_delta": False, "count": 0}
+deltas = {}
+for i, delta in tqdm(deltas_df.iterrows(), desc="Making delta index files ..."):
+    post_id = delta.post_id
+    comment_id = delta.in_comment
+    if post_id.strip() == "" or comment_id.strip() == "":
+        continue
+    
+    if (post_id, comment_id) not in deltas:
+        deltas[(post_id, comment_id)] = DELTA_DEFAULT.copy()
+    deltas[(post_id, comment_id)]["count"] += int(delta['count'])
+    if delta['from'] == "OP":
+        deltas[(post_id, comment_id)]["is_op_delta"] = True
+
+def get_delta(post_id: str, comment_id: str):
+    if (post_id, comment_id) not in deltas:
+        return DELTA_DEFAULT
+    return deltas[(post_id, comment_id)]
+
+del deltas_df
+
 # Constructing the dataset
 def get_chat_hist(post_id: str, parent_id: str):
     text, authors = [], []
@@ -81,19 +103,13 @@ for i, post in tqdm(submissions_df.iterrows(), desc="Processing submissions ..."
         history, history_authors = get_chat_hist(post.id, comment.parent_id)
         conversation = [post.selftext, *history, comment.body]
         conversation_authors = [post.author, *history_authors, comment.author]
-        delta_count = deltas_df[
-            (deltas_df['post_id'] == post.id) &
-            (deltas_df['in_comment'] == comment.id)]['count'].sum()
-        is_op_delta = len(deltas_df[
-            (deltas_df['post_id'] == post.id) &
-            (deltas_df['in_comment'] == comment.id) &
-            (deltas_df['from'] == 'OP')]) > 0
+        delta_info = get_delta(post.id, comment.id)
         # print(post.id, comment.id, delta_count, is_op_delta)
         dataset.append([
             post.id, post.title, post.author, post.url, post.ups, post.downs, post.score, post.created_utc,
             comment.id, comment.author, comment.ups, comment.downs, comment.score, comment.author_flair_text, comment.created_utc,
             conversation, conversation_authors, len(conversation),
-            delta_count, is_op_delta,
+            delta_info['count'], delta_info['is_op_delta'],
         ])
 
 pd.DataFrame.from_records(dataset,
