@@ -1,6 +1,14 @@
-# Stats:
+# Data with Delta Information
+Run code modules in order of the prefix number. The number shows the level of 'i'-th handed data the process is being done on.
 
-# Frequency of Deltas on Comments
+## Commands to run
+```
+python 1_make_dataset.py changemyview_submissions_df-head10.jsonl changemyview_comments_df-head100.jsonl ../deltas.csv cmv_delta.jsonl
+```
+
+## Stats:
+
+### Frequency of Deltas on Comments
 Out of ~93.6k unique comments over 47k posts with at least one delta we saw a power-law on the distribution of deltas on comments:
 ```
 $ sed -n "s/.*('\([^']*\)',[[:space:]]*'[^']*').*/'\1'/p" deltas_dict.json | sort | uniq | wc -l
