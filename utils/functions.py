@@ -147,4 +147,4 @@ def fix_deltas(
     deltas_df = pd.concat([deltas_df, added_items], ignore_index=True).reset_index()
     if save:
         deltas_df.to_csv('~deltas.fixed.csv', index=False)
-    return deltas_df, removed_ids, added_items
+    return deltas_df, removed_items, added_items
