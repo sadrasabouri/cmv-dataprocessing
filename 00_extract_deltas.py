@@ -29,7 +29,12 @@ def main():
     df.to_csv(output_path, index=False)
 
 
-def test(text: str):
+def test(text: str) -> None:
+    """
+    Test the module.
+    
+    :param text: input text
+    """
     print(parse_deltas(text))
 
 
