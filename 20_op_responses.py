@@ -1,3 +1,5 @@
+"""Extract OP responses."""
+
 import pandas as pd
 import sys
 from tqdm import tqdm
@@ -5,6 +7,7 @@ import os
 import json
 import pickle
 
+# TODO: fix from here
 
 submissions_path = sys.argv[1]
 deltas_path = sys.argv[2]
