@@ -1,12 +1,10 @@
-# Data with Delta Information
+# CMV Dataset with Delta Information
+TBD
+
 Run code modules in order of the prefix number. The number shows the level of 'i'-th handed data the process is being done on.
 
 ## Commands to run
-```
-$ python 1_make_dataset.py changemyview_submissions_df-head10.jsonl changemyview_comments_df-head100.jsonl ../deltas.csv cmv_delta.jsonl
-
-$ python 2_op_responses.py changemyview_submissions_df.jsonl ../deltas.csv
-```
+TBD
 
 ## Stats:
 
