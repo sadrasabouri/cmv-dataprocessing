@@ -76,10 +76,10 @@ for pid, comments in pid2comment.items():
             else:
                 op_delta_not_given_comments.append(comment)
 
-with open(os.path.join('op_responses', 'cmv_delta_op_pos.jsonl'), 'w') as f:
+with open(os.path.join('op_responses', 'cmv_op_pos.jsonl'), 'w') as f:
     for c in op_delta_given_comments:
         f.write(json.dumps(c) + '\n')
 
-with open(os.path.join('op_responses', 'cmv_delta_op_neg.jsonl'), 'w') as f:
+with open(os.path.join('op_responses', 'cmv_op_neg.jsonl'), 'w') as f:
     for c in op_delta_not_given_comments:
         f.write(json.dumps(c) + '\n')

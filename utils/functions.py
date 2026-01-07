@@ -1,10 +1,12 @@
 """Functions module"""
 
 from typing import List, Tuple, Dict
+import os
 import re
 import json
-from tqdm import tqdm
 import pickle
+from tqdm import tqdm
+import pandas as pd
 from .params import DELTA_RE
 
 
@@ -61,7 +63,9 @@ def parse_deltas(text: str) -> List[List[str]]:
     return rows
 
 
-def get_indexed_comment_maps(path_to_comments: str, save: bool = True) -> Tuple[Dict[Tuple[str, str], Dict], Dict[str, List[Dict]]]:
+def get_indexed_comment_maps(
+        path_to_comments: str,
+        save: bool = True) -> Tuple[Dict[Tuple[str, str], Dict], Dict[str, List[Dict]]]:
     """
     Extract the mappings to comments indexed with post and comment id.
 
@@ -89,3 +93,58 @@ def get_indexed_comment_maps(path_to_comments: str, save: bool = True) -> Tuple[
         with open('~pid2comment.pkl', 'wb') as f:
             pickle.dump(pid2comment, f)
     return pid_cid2comment, pid2comment
+
+
+def get_comment_by_id(post_id: str, comment_id: str, pid_cid2comment: Dict[Tuple[str, str], Dict]) -> Dict:
+    """
+    Safely return the desired comment and None if not found.
+    
+    :param post_id: post id
+    :param comment_id: comment id
+    :param pid_cid2comment: (post id, comment id) -> comment mapping
+    """
+    if (post_id, comment_id) not in pid_cid2comment:
+        return None
+    return pid_cid2comment[(post_id, comment_id)]
+
+
+def fix_deltas(
+        deltas_df: pd.DataFrame,
+        pid_cid2comment: Dict[Tuple[str, str], Dict],
+        save: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Fix delta bot inconsistency issues (~66k of deltas out of 94k).
+    In some cases deltalog-bot reported delta to the comment which gives the delta not the one that gets it.
+    The proxy used for findings such instances is to find cases where the author of the comment is not the same as the reported author by deltalog-bot
+    
+    :param deltas_df: initial deltas dataframe
+    :param pid_cid2comment: (post id, comment id) -> comment mapping
+    :param save: flag indicating saving the files.
+    """
+    removed_ids = []
+    added_items = []
+    for i, delta in tqdm(deltas_df.iterrows(), desc="Fixing deltalog-bot issue ..."):
+        the_comment = get_comment_by_id(delta.post_id, delta.in_comment, pid_cid2comment)
+        if the_comment is None:
+            continue
+        comment_author = the_comment.get('author')
+        if comment_author != delta.to:
+            # Real delta receiver: delta.to
+            removed_ids.append(i)
+            while True:
+                comment_id = the_comment.get('parent_id', '').split('_')[-1]
+                the_comment = get_comment_by_id(delta.post_id, comment_id, pid_cid2comment)
+                if the_comment is None:
+                    comment_id = None
+                    break
+                the_author = the_comment.get('author')
+                if the_author == delta.to:
+                    break
+            added_items.append([delta.post_id, delta['from'], delta.to, comment_id, delta['count'], None])
+    removed_items = deltas_df.iloc[removed_ids]
+    deltas_df = deltas_df.drop(removed_ids)
+    added_items = pd.DataFrame.from_records(added_items, columns=['post_id','from','to','in_comment','count','prefix'])
+    deltas_df = pd.concat([deltas_df, added_items], ignore_index=True).reset_index()
+    if save:
+        deltas_df.to_csv('~deltas.fixed.csv', index=False)
+    return deltas_df, removed_ids, added_items
