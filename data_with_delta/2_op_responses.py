@@ -8,7 +8,6 @@ import pickle
 
 submissions_path = sys.argv[1]
 deltas_path = sys.argv[2]
-output_path = sys.argv[3]
 
 print("Loading deltas ...", flush=True)
 deltas_df = pd.read_csv(deltas_path)
@@ -60,10 +59,10 @@ for pid, comments in pid2comment.items():
             else:
                 op_delta_not_given_comments.append(comment)
 
-with open(output_path+'cmv_delta_op_pos.jsonl', 'w') as f:
+with open(os.path.join('op_responses', 'cmv_delta_op_pos.jsonl'), 'w') as f:
     for c in op_delta_given_comments:
         f.write(json.dumps(c) + '\n')
 
-with open(output_path+'cmv_delta_op_neg.jsonl', 'w') as f:
+with open(os.path.join('op_responses', 'cmv_delta_op_neg.jsonl'), 'w') as f:
     for c in op_delta_not_given_comments:
         f.write(json.dumps(c) + '\n')
