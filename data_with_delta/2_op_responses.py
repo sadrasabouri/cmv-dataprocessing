@@ -16,6 +16,9 @@ deltas_df = pd.read_csv(deltas_path)
 print("Loading id indexed to comments files (~pid2comment.pkl) ...", flush=True)
 with open('~pid2comment.pkl', 'rb') as f:
     pid2comment = pickle.load(f)
+print("Loading id indexed to comments files (~pid_cid2comment.pkl) ...", flush=True)
+with open('~pid_cid2comment.pkl', 'rb') as f:
+    pid_cid2comment = pickle.load(f)
 
 pid2post = {}
 with open(submissions_path, 'r') as f:
@@ -28,19 +31,30 @@ with open('~pid2post.pkl', 'wb') as f:
     pickle.dump(pid2post, f)
 
 
+def get_comment_by_id(post_id: str, comment_id: str):
+    if (post_id, comment_id) not in pid_cid2comment:
+        return None
+    return pid_cid2comment[(post_id, comment_id)]
+
+
 DELTA_DEFAULT = {"is_op_delta": False, "count": 0}
 deltas = {}
-# note that here we need the ~66k different samples here which point to the OP's comment
 for i, delta in tqdm(deltas_df.iterrows(), desc="Making delta index ..."):
-    post_id = delta.post_id
-    comment_id = delta.in_comment
-    if post_id is None or comment_id is None:
+    the_comment = get_comment_by_id(delta.post_id, delta.in_comment)
+    if the_comment is None:
         continue
-    if (post_id, comment_id) not in deltas:
-        deltas[(post_id, comment_id)] = DELTA_DEFAULT.copy()
-    deltas[(post_id, comment_id)]["count"] += int(delta['count'])
-    if delta['from'] == "OP":
-        deltas[(post_id, comment_id)]["is_op_delta"] = True
+    comment_author = the_comment.get('author')
+    # note that here we need the ~66k different samples here which point to the OP's comment
+    if comment_author != delta.to:
+        post_id = delta.post_id
+        comment_id = delta.in_comment
+        if post_id is None or comment_id is None:
+            continue
+        if (post_id, comment_id) not in deltas:
+            deltas[(post_id, comment_id)] = DELTA_DEFAULT.copy()
+        deltas[(post_id, comment_id)]["count"] += int(delta['count'])
+        if delta['from'] == "OP":
+            deltas[(post_id, comment_id)]["is_op_delta"] = True
 
 def get_delta(post_id: str, comment_id: str):
     if (post_id, comment_id) not in deltas:
