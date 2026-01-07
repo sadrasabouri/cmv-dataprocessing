@@ -11,3 +11,5 @@ DELTA_RE = re.compile(
     r"(?P<post_id>[a-z0-9]+)/.*?/(?P<comment_id>[a-z0-9]+)",
     re.IGNORECASE | re.DOTALL
 )
+
+DELTA_DEFAULT = {"is_op_delta": False, "count": 0}

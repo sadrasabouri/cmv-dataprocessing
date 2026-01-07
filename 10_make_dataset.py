@@ -1,13 +1,12 @@
 """Make dataset module."""
 
 import pandas as pd
-import sys
 from tqdm import tqdm
-import os
 import json
 import pickle
 import argparse
-from utils.functions import get_indexed_comment_maps, get_comment_by_id, fix_deltas
+from utils.functions import get_indexed_comment_maps, get_chat_hist
+from utils.functions import fix_deltas, extract_deltas, get_delta
 
 
 def main():
@@ -32,56 +31,16 @@ def main():
             pid_cid2comment = pickle.load(f)
         with open('~pid2comment.pkl', 'rb') as f:
             pid2comment = pickle.load(f)
-        deltas_df = pd.read_csv('~deltas.fixed.csv')
+        with open('~deltas_dict.pkl', 'rb') as f:
+            deltas = pickle.load(f)
     else:
         pid_cid2comment, pid2comment = get_indexed_comment_maps(comments_path)
         deltas_df = pd.read_csv(deltas_path)
         deltas_df, _, _ = fix_deltas(deltas_df, pid_cid2comment)
-
-
-    DELTA_DEFAULT = {"is_op_delta": False, "count": 0}
-    deltas = {}
-    for i, delta in tqdm(deltas_df.iterrows(), desc="Making delta index files ..."):
-        post_id = delta.post_id
-        comment_id = delta.in_comment
-        if post_id is None or comment_id is None: # cases where comment is removed (~4k of deltas out of 94k)
-            continue
-        
-        if (post_id, comment_id) not in deltas:
-            deltas[(post_id, comment_id)] = DELTA_DEFAULT.copy()
-        deltas[(post_id, comment_id)]["count"] += int(delta['count'])
-        if delta['from'] == "OP":
-            deltas[(post_id, comment_id)]["is_op_delta"] = True
-
-    def get_delta(post_id: str, comment_id: str):
-        if (post_id, comment_id) not in deltas:
-            return DELTA_DEFAULT
-        return deltas[(post_id, comment_id)]
-
-    print("Saving id indexed to comments files (~deltas_dict.pkl) ...", flush=True)
-    with open('~deltas_dict.pkl', 'wb') as f:
-        pickle.dump(deltas, f)
-
-    del deltas_df
-
+        deltas = extract_deltas(deltas_df)
+        del deltas_df
 
     # Constructing the dataset
-    def get_chat_hist(post_id: str, parent_id: str):
-        text, authors, ids = [], [], []
-        while not parent_id == f"t3_{post_id}":
-            comment = get_comment_by_id(post_id, parent_id.split('_')[-1], pid_cid2comment)
-            if comment is None: # parent comment is removed
-                text.insert(0, None)
-                authors.insert(0, None)
-                ids.insert(0, None)
-                break
-            text.insert(0, comment.get('body'))
-            authors.insert(0, comment.get('author'))
-            ids.insert(0, comment.get('id'))
-
-            parent_id = comment.get('parent_id')
-        return text, authors, ids
-
     dataset = {
         'post_id': [], 'post_title': [], 'post_author': [], 'post_url': [], 'post_ups': [], 'post_downs': [], 'post_score': [], 'post_created_utc': [],
         'comment_id': [], 'comment_author': [], 'comment_ups': [], 'comment_downs': [], 'comment_score': [], 'comment_author_flair_text': [], 'comment_created_utc': [],
@@ -92,11 +51,11 @@ def main():
         for line in tqdm(f, desc="Processing submissions ..."):
             post = json.loads(line.strip())
             for comment in pid2comment.get(post.get('id'), []):
-                history, history_authors, history_ids = get_chat_hist(post.get('id'), comment.get('parent_id'))
+                history, history_authors, history_ids = get_chat_hist(post.get('id'), comment.get('parent_id'), pid_cid2comment)
                 conversation = [post.get('selftext'), *history, comment.get('body')]
                 conversation_authors = [post.get('author'), *history_authors, comment.get('author')]
                 conversation_ids = [comment.get('link_id'), *history_ids, comment.get('id')]
-                delta_info = get_delta(post.get('id'), comment.get('id'))
+                delta_info = get_delta(post.get('id'), comment.get('id'), deltas)
                 
                 dataset['post_id'].append(post.get('id'))
                 dataset['post_title'].append(post.get('title'))

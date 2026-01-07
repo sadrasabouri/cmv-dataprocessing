@@ -1,20 +1,19 @@
 """Functions module"""
 
-from typing import List, Tuple, Dict
-import os
+from typing import List, Tuple, Dict, Union
 import re
 import json
 import pickle
 from tqdm import tqdm
 import pandas as pd
-from .params import DELTA_RE
+from .params import DELTA_RE, DELTA_DEFAULT
 
 
 def split_from_users(from_block: str) -> List:
     """
     Parse the user information handles 'OP', '/u/foo', '/u/foo and /u/bar', '/u/foo, /u/bar, and /u/baz'.
 
-    :param from_block: block of the text with the from user (delta giver) information.
+    :param from_block: block of the text with the from user (delta giver) information
     """
     from_block = from_block.strip()
 
@@ -69,8 +68,8 @@ def get_indexed_comment_maps(
     """
     Extract the mappings to comments indexed with post and comment id.
 
-    :param path_to_comments: the path to the comments jsonl.
-    :param save: flag indicating saving of the files.
+    :param path_to_comments: the path to the comments jsonl
+    :param save: flag indicating saving of the files
     """
     # TODO: make it a pid: cid: comment map
     pid_cid2comment = {}
@@ -119,7 +118,7 @@ def fix_deltas(
     
     :param deltas_df: initial deltas dataframe
     :param pid_cid2comment: (post id, comment id) -> comment mapping
-    :param save: flag indicating saving the files.
+    :param save: flag indicating saving the files
     """
     removed_ids = []
     added_items = []
@@ -148,3 +147,73 @@ def fix_deltas(
     if save:
         deltas_df.to_csv('~deltas.fixed.csv', index=False)
     return deltas_df, removed_items, added_items
+
+
+def extract_deltas(deltas_df: pd.DataFrame, save: bool = True) -> Dict[Tuple[str, str], Dict[str, Union[bool, int]]]:
+    """
+    Extract deltas dict from deltas dataframe.
+
+    :param deltas_df: Deltas dataframe
+    :parma save: flag indicating saving the files
+    """
+    deltas = {}
+    for _, delta in tqdm(deltas_df.iterrows(), desc="Making delta index files ..."):
+        post_id = delta.post_id
+        comment_id = delta.in_comment
+        # cases where comment is removed (~4k of deltas out of 94k)
+        if post_id is None or comment_id is None:
+            continue
+        
+        if (post_id, comment_id) not in deltas:
+            deltas[(post_id, comment_id)] = DELTA_DEFAULT.copy()
+        deltas[(post_id, comment_id)]["count"] += int(delta['count'])
+        if delta['from'] == "OP":
+            deltas[(post_id, comment_id)]["is_op_delta"] = True
+    if save:
+        print("Saving id indexed to comments files (~deltas_dict.pkl) ...", flush=True)
+        with open('~deltas_dict.pkl', 'wb') as f:
+            pickle.dump(deltas, f)
+    return deltas
+
+
+def get_delta(
+        post_id: str,
+        comment_id: str,
+        deltas: Dict[Tuple[str, str], Dict[str, Union[bool, int]]]) -> Dict[str, Union[bool, int]]:
+    """
+    Safely return the delta information for a comment.
+
+    :param post_id: post id
+    :param comment_id: comment id
+    :param deltas: delta dictionary
+    """
+    if (post_id, comment_id) not in deltas:
+        return DELTA_DEFAULT
+    return deltas[(post_id, comment_id)]
+
+
+def get_chat_hist(
+        post_id: str,
+        parent_id: str,
+        pid_cid2comment: Dict[Tuple[str, str], Dict]) -> Tuple[List[str], List[str], List[str]]:
+    """
+    Return the chat history in a post.
+    
+    :param post_id: post id
+    :param parent_id: comment id
+    :param pid_cid2comment: (post id, comment id) -> comment mapping
+    """
+    text, authors, ids = [], [], []
+    while not parent_id == f"t3_{post_id}":
+        comment = get_comment_by_id(post_id, parent_id.split('_')[-1], pid_cid2comment)
+        if comment is None: # parent comment is removed
+            text.insert(0, None)
+            authors.insert(0, None)
+            ids.insert(0, None)
+            break
+        text.insert(0, comment.get('body'))
+        authors.insert(0, comment.get('author'))
+        ids.insert(0, comment.get('id'))
+
+        parent_id = comment.get('parent_id')
+    return text, authors, ids
