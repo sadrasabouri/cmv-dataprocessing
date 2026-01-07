@@ -12,12 +12,12 @@ from utils.functions import fix_deltas, extract_deltas, get_delta
 def main():
     parser = argparse.ArgumentParser(description="The second tool for creating dataset by joining datasources.")
     
-    parser.add_argument('submissions_path', type=str, help="Path to the r/changemyview submission jsonl dump.")
-    parser.add_argument('comments_path', type=str, help="Path to the r/changemyview comments jsonl dump.")
-    parser.add_argument('deltas_path', type=str, help="Path to the DeltaLog csv delta files.")
-    parser.add_argument('output_path', type=str, help="Dataset jsonl path.")
+    parser.add_argument('submissions_path', type=str, help="Path to the r/changemyview submission jsonl dump")
+    parser.add_argument('comments_path', type=str, help="Path to the r/changemyview comments jsonl dump")
+    parser.add_argument('deltas_path', type=str, help="Path to the DeltaLog csv delta files")
+    parser.add_argument('output_path', type=str, help="Dataset jsonl path")
     
-    parser.add_argument('--use-cache', action="store_true", help="Flag that lets the program use the generated cache.", default=None)
+    parser.add_argument('--use-cache', action="store_true", help="Flag that lets the program use the generated cache", default=None)
 
     args = parser.parse_args()
 
@@ -99,3 +99,6 @@ def main():
         for i in range(len(dataset['post_id'])):
             record = {key: dataset[key][i] for key in dataset if key in ALLOWED_KEYS}
             f.write(json.dumps(record) + '\n')
+
+if __name__ == '__main__':
+    main()
