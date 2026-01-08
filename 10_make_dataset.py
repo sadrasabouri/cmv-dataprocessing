@@ -5,7 +5,7 @@ from tqdm import tqdm
 import json
 import pickle
 import argparse
-from utils.functions import get_indexed_comment_maps, get_chat_hist
+from utils.functions import extract_indexed_comment_maps, get_chat_hist
 from utils.functions import fix_deltas, extract_deltas, get_delta
 
 
@@ -17,7 +17,7 @@ def main():
     parser.add_argument('deltas_path', type=str, help="Path to the DeltaLog csv delta files")
     parser.add_argument('output_path', type=str, help="Dataset jsonl path")
     
-    parser.add_argument('--use-cache', action="store_true", help="Flag that lets the program use the generated cache", default=None)
+    parser.add_argument('--use-cache', action="store_true", help="Flag that lets the program use the generated cache", default=False)
 
     args = parser.parse_args()
 
@@ -34,7 +34,7 @@ def main():
         with open('~deltas_dict.pkl', 'rb') as f:
             deltas = pickle.load(f)
     else:
-        pid_cid2comment, pid2comment = get_indexed_comment_maps(comments_path)
+        pid_cid2comment, pid2comment = extract_indexed_comment_maps(comments_path)
         deltas_df = pd.read_csv(deltas_path)
         deltas_df, _, _ = fix_deltas(deltas_df, pid_cid2comment)
         deltas = extract_deltas(deltas_df)

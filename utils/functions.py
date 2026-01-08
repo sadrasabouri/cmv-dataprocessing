@@ -62,7 +62,26 @@ def parse_deltas(text: str) -> List[List[str]]:
     return rows
 
 
-def get_indexed_comment_maps(
+def extract_indexed_post_map(path_to_posts: str, save: bool = True) -> Dict[str, Dict]:
+    """
+    Extract the mappings to posts indexed with post id.
+
+    :param path_to_posts: path to the posts jsonl
+    :param save: flag indicating saving of the files
+    """
+    pid2post = {}
+    with open(path_to_posts, 'r') as f:
+        for line in tqdm(f, desc="Processing submissions ..."):
+            post = json.loads(line.strip())
+            pid2post[post.get('id')] = post
+    if save:
+        print("Saving id indexed to submissions files (~pid2post.pkl) ...")
+        with open('~pid2post.pkl', 'wb') as f:
+            pickle.dump(pid2post, f)
+    return pid2post
+
+
+def extract_indexed_comment_maps(
         path_to_comments: str,
         save: bool = True) -> Tuple[Dict[Tuple[str, str], Dict], Dict[str, List[Dict]]]:
     """
@@ -140,7 +159,7 @@ def fix_deltas(
                 if the_author == delta.to:
                     break
             added_items.append([delta.post_id, delta['from'], delta.to, comment_id, delta['count'], None])
-    removed_items = deltas_df.iloc[removed_ids]
+    removed_items = deltas_df.iloc[removed_ids].copy()
     deltas_df = deltas_df.drop(removed_ids)
     added_items = pd.DataFrame.from_records(added_items, columns=['post_id','from','to','in_comment','count','prefix'])
     deltas_df = pd.concat([deltas_df, added_items], ignore_index=True).reset_index()
@@ -170,7 +189,7 @@ def extract_deltas(deltas_df: pd.DataFrame, save: bool = True) -> Dict[Tuple[str
         if delta['from'] == "OP":
             deltas[(post_id, comment_id)]["is_op_delta"] = True
     if save:
-        print("Saving id indexed to comments files (~deltas_dict.pkl) ...", flush=True)
+        print("Saving id indexed to comments files (~deltas_dict.pkl) ...")
         with open('~deltas_dict.pkl', 'wb') as f:
             pickle.dump(deltas, f)
     return deltas
