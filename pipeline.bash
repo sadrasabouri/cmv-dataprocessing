@@ -7,8 +7,8 @@
 
 DATA_DIR="../cmv/reddit/subreddits24"
 DELTA_LOG_SUB="$DATA_DIR/DeltaLog_submissions"
-CMV_SUB="$DATA_DIR/changemyview_submissions_df"
-CMV_COMMENTS="$DATA_DIR/changemyview_comments_df"
+CMV_SUB="$DATA_DIR/changemyview_submissions"
+CMV_COMMENTS="$DATA_DIR/changemyview_comments"
 
 echo "00. Extracting deltas ..."
 DELTA="data/deltas.csv"
