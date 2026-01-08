@@ -19,4 +19,4 @@ CMV_DATASET="data/cmv_data.jsonl"
 python 10_make_dataset.py $CMV_SUB $CMV_COMMENTS $DELTA $CMV_DATASET
 
 echo "20. OP responses w/wo delta"
-python 20_op_responses.py $CMV_SUB $CMV_COMMENTS $DELTA
+python 20_op_responses.py $CMV_SUB $CMV_COMMENTS $DELTA --use-cache

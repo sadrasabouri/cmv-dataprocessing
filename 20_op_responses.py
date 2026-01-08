@@ -33,11 +33,9 @@ def main():
             pid_cid2comment = pickle.load(f)
         with open('~pid2comment.pkl', 'rb') as f:
             pid2comment = pickle.load(f)
-        with open('~pid2post.pkl', 'rb') as f:
-            pid2post = pickle.load(f)
     else:
         pid_cid2comment, pid2comment = extract_indexed_comment_maps(comments_path)
-        pid2post = extract_indexed_post_map(submissions_path)
+    pid2post = extract_indexed_post_map(submissions_path)
 
     _, deltas_df, _ = fix_deltas(deltas_df, pid_cid2comment, save=False)
     deltas = extract_deltas(deltas_df, save=False)
