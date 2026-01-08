@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH --time=12:00:00
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=64GB
+#SBATCH --mem=99GB
 #SBATCH --mail-type=END,FAIL
 #SBATCH --job-name=cmv-dataset-pipeline
 #SBATCH --output=log/%j-%x.out
