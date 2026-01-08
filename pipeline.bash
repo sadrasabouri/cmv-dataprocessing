@@ -4,9 +4,6 @@
 #SBATCH --mem=32GB
 #SBATCH --mail-type=END,FAIL
 #SBATCH --job-name=cmv-dataset-pipeline
-# this will overwrite previous output files from previous runs of this job
-#SBATCH --output=%x.out
-# to keep all output files, put the job number in the output filename
 #SBATCH --output=log/%j-%x.out
 
 DATA_DIR="../cmv/reddit/subreddits24"
