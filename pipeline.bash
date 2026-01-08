@@ -15,15 +15,15 @@ DELTA="data/deltas.csv"
 python 00_extract_deltas.py $DELTA_LOG_SUB $DELTA
 
 SUBMISSIONS_W_DELTA="~ids.txt"
-echo "Extracting uniq id for delta posts ... [saving into $SUBMISSIONS_W_DELTA]"
+echo "01. Extracting uniq id for delta posts ... [saving into $SUBMISSIONS_W_DELTA]"
 tail -n +2 $DELTA | cut -d, -f1 | sort | uniq > $SUBMISSIONS_W_DELTA
 
 CMV_DELTA_FILTERED_SUB="data/changemyview_submissions.jsonl"
-echo "Filtering the posts with those ids ... [saving into $CMV_DELTA_FILTERED_SUB]"
+echo "02. Filtering the posts with those ids ... [saving into $CMV_DELTA_FILTERED_SUB]"
 grep -Ff <(sed 's/.*/"id":"&"/' $SUBMISSIONS_W_DELTA) $CMV_SUB > $CMV_DELTA_FILTERED_SUB 
 
 CMV_DELTA_FILTERED_COMMENT="data/changemyview_comments.jsonl"
-echo "Filtering the comments with those ids ... [saving into $CMV_DELTA_FILTERED_COMMENT]"
+echo "03. Filtering the comments with those ids ... [saving into $CMV_DELTA_FILTERED_COMMENT]"
 grep -Ff <(sed 's/^/link_id":"t3_/; s/$/"/' $SUBMISSIONS_W_DELTA) $CMV_COMMENTS > $CMV_DELTA_FILTERED_COMMENT
 
 echo "10. Making the dataset ..."
