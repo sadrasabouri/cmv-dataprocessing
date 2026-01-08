@@ -81,54 +81,51 @@ def extract_indexed_post_map(path_to_posts: str, save: bool = True) -> Dict[str,
     return pid2post
 
 
-def extract_indexed_comment_maps(
+def extract_indexed_comment_map(
         path_to_comments: str,
-        save: bool = True) -> Tuple[Dict[Tuple[str, str], Dict], Dict[str, List[Dict]]]:
+        save: bool = True) -> Dict[str, Dict[str, Dict]]:
     """
     Extract the mappings to comments indexed with post and comment id.
 
     :param path_to_comments: the path to the comments jsonl
     :param save: flag indicating saving of the files
     """
-    # TODO: make it a pid: cid: comment map
-    pid_cid2comment = {}
-    pid2comment = {}
+    pid2cid2comment = {}
     with open(path_to_comments, 'r') as f:
         for line in tqdm(f, desc="Making comment index files ..."):
             comment = json.loads(line.strip())
             post_id = comment.get('link_id', '').split('_')[-1]
             comment_id = comment.get('id')
-            pid_cid2comment[(post_id, comment_id)] = comment
+            if not post_id in pid2cid2comment:
+                pid2cid2comment[post_id] = {}
+            if not comment_id in pid2cid2comment[post_id]:
+                pid2cid2comment[post_id][comment_id] = comment
 
-            if not post_id in pid2comment:
-                pid2comment[post_id] = []
-            pid2comment[post_id].append(comment)
     if save:
-        print("Saving id indexed to comments files (~pid_cid2comment.pkl) ...")
-        with open('~pid_cid2comment.pkl', 'wb') as f:
-            pickle.dump(pid_cid2comment, f)
-        print("Saving id indexed to comments files (~pid2comment.pkl) ...")
-        with open('~pid2comment.pkl', 'wb') as f:
-            pickle.dump(pid2comment, f)
-    return pid_cid2comment, pid2comment
+        print("Saving id indexed to comments files (~pid2cid2comment.pkl) ...")
+        with open('~pid2cid2comment.pkl', 'wb') as f:
+            pickle.dump(pid2cid2comment, f)
+    return pid2cid2comment
 
 
-def get_comment_by_id(post_id: str, comment_id: str, pid_cid2comment: Dict[Tuple[str, str], Dict]) -> Dict:
+def get_comment_by_id(post_id: str, comment_id: str, pid2cid2comment: Dict[str, Dict[str, Dict]]) -> Dict:
     """
     Safely return the desired comment and None if not found.
     
     :param post_id: post id
     :param comment_id: comment id
-    :param pid_cid2comment: (post id, comment id) -> comment mapping
+    :param pid2cid2comment: post id -> comment id -> comment mapping
     """
-    if (post_id, comment_id) not in pid_cid2comment:
+    if post_id not in pid2cid2comment:
         return None
-    return pid_cid2comment[(post_id, comment_id)]
+    if comment_id not in pid2cid2comment[post_id]:
+        return None
+    return pid2cid2comment[post_id][comment_id]
 
 
 def fix_deltas(
         deltas_df: pd.DataFrame,
-        pid_cid2comment: Dict[Tuple[str, str], Dict],
+        pid2cid2comment: Dict[str, Dict[str, Dict]],
         save: bool = True) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Fix delta bot inconsistency issues (~66k of deltas out of 94k).
@@ -136,13 +133,13 @@ def fix_deltas(
     The proxy used for findings such instances is to find cases where the author of the comment is not the same as the reported author by deltalog-bot
     
     :param deltas_df: initial deltas dataframe
-    :param pid_cid2comment: (post id, comment id) -> comment mapping
+    :param pid_cid2comment: post id -> comment id -> comment mapping
     :param save: flag indicating saving the files
     """
     removed_ids = []
     added_items = []
     for i, delta in tqdm(deltas_df.iterrows(), desc="Fixing deltalog-bot issue ..."):
-        the_comment = get_comment_by_id(delta.post_id, delta.in_comment, pid_cid2comment)
+        the_comment = get_comment_by_id(delta.post_id, delta.in_comment, pid2cid2comment)
         if the_comment is None:
             continue
         comment_author = the_comment.get('author')
@@ -151,7 +148,7 @@ def fix_deltas(
             removed_ids.append(i)
             while True:
                 comment_id = the_comment.get('parent_id', '').split('_')[-1]
-                the_comment = get_comment_by_id(delta.post_id, comment_id, pid_cid2comment)
+                the_comment = get_comment_by_id(delta.post_id, comment_id, pid2cid2comment)
                 if the_comment is None:
                     comment_id = None
                     break
@@ -214,17 +211,17 @@ def get_delta(
 def get_chat_hist(
         post_id: str,
         parent_id: str,
-        pid_cid2comment: Dict[Tuple[str, str], Dict]) -> Tuple[List[str], List[str], List[str]]:
+        pid2cid2comment: Dict[str, Dict[str, Dict]]) -> Tuple[List[str], List[str], List[str]]:
     """
     Return the chat history in a post.
     
     :param post_id: post id
     :param parent_id: comment id
-    :param pid_cid2comment: (post id, comment id) -> comment mapping
+    :param pid2cid2comment: post id -> comment id -> comment mapping
     """
     text, authors, ids = [], [], []
     while not parent_id == f"t3_{post_id}":
-        comment = get_comment_by_id(post_id, parent_id.split('_')[-1], pid_cid2comment)
+        comment = get_comment_by_id(post_id, parent_id.split('_')[-1], pid2cid2comment)
         if comment is None: # parent comment is removed
             text.insert(0, None)
             authors.insert(0, None)

@@ -5,7 +5,7 @@ from tqdm import tqdm
 import json
 import pickle
 import argparse
-from utils.functions import extract_indexed_comment_maps, get_chat_hist
+from utils.functions import extract_indexed_comment_map, get_chat_hist
 from utils.functions import fix_deltas, extract_deltas, get_delta
 
 
@@ -27,16 +27,14 @@ def main():
     output_path = args.output_path
 
     if args.use_cache:
-        with open('~pid_cid2comment.pkl', 'rb') as f:
-            pid_cid2comment = pickle.load(f)
-        with open('~pid2comment.pkl', 'rb') as f:
-            pid2comment = pickle.load(f)
+        with open('~pid2cid2comment.pkl', 'rb') as f:
+            pid2cid2comment = pickle.load(f)
         with open('~deltas_dict.pkl', 'rb') as f:
             deltas = pickle.load(f)
     else:
-        pid_cid2comment, pid2comment = extract_indexed_comment_maps(comments_path)
+        pid2cid2comment = extract_indexed_comment_map(comments_path)
         deltas_df = pd.read_csv(deltas_path)
-        deltas_df, _, _ = fix_deltas(deltas_df, pid_cid2comment)
+        deltas_df, _, _ = fix_deltas(deltas_df, pid2cid2comment)
         deltas = extract_deltas(deltas_df)
         del deltas_df
 
@@ -50,8 +48,8 @@ def main():
     with open(submissions_path, 'r') as f:
         for line in tqdm(f, desc="Processing submissions ..."):
             post = json.loads(line.strip())
-            for comment in pid2comment.get(post.get('id'), []):
-                history, history_authors, history_ids = get_chat_hist(post.get('id'), comment.get('parent_id'), pid_cid2comment)
+            for comment in pid2cid2comment.get(post.get('id'), {}).values():
+                history, history_authors, history_ids = get_chat_hist(post.get('id'), comment.get('parent_id'), pid2cid2comment)
                 conversation = [post.get('selftext'), *history, comment.get('body')]
                 conversation_authors = [post.get('author'), *history_authors, comment.get('author')]
                 conversation_ids = [comment.get('link_id'), *history_ids, comment.get('id')]
