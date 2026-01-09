@@ -7,6 +7,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from transformers import TrainingArguments, Trainer
 from transformers import DataCollatorWithPadding
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, roc_auc_score
+from sklearn.model_selection import train_test_split
 import numpy as np
 import wandb
 import argparse
@@ -95,9 +96,9 @@ class WeightedTrainer(Trainer):
 
 def train_model(
     train_file,
-    dev_file,
     output_dir,
     model_name='bert-base-uncased',
+    val_split=0.2,
     epochs=3,
     batch_size=8,
     learning_rate=2e-5,
@@ -111,8 +112,8 @@ def train_model(
     
     Args:
         train_file: Path to JSONL data
-        model_name: HuggingFace model name
         output_dir: Directory to save model
+        model_name: HuggingFace model name
         val_split: Validation split ratio
         epochs: Number of epochs
         batch_size: Batch size
@@ -138,8 +139,8 @@ def train_model(
     
     # Load data
     print("Loading data...")
-    train_data = load_data(train_file)
-    val_data = load_data(train_file)
+    data = load_data(train_file)
+    train_data, val_data = train_test_split(data, test_size=val_split, random_state=seed)
     
     print(f"Train: {len(train_data)}, Val: {len(val_data)}")
     print(f"Positive rate - Train: {sum(d['is_op_delta'] for d in train_data)/len(train_data):.2%}, "
