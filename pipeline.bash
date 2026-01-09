@@ -33,4 +33,5 @@ python 10_make_dataset.py $CMV_DELTA_FILTERED_SUB $CMV_DELTA_FILTERED_COMMENT $D
 echo "20. OP responses w/wo delta"
 python 20_op_responses.py $CMV_DELTA_FILTERED_SUB $CMV_DELTA_FILTERED_COMMENT $DELTA --use-cache
 
-# TODO: add others to pipeline
+echo "20. DPO dataset creation ..."
+python 20_dpo_data.py $CMV_DATASET data/dpo_data.jsonl
