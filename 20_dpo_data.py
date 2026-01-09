@@ -41,6 +41,7 @@ def select_chosen_reject(df: pd.DataFrame) -> pd.Series:
     post_text = chosen['conversation'][0]
     prompt = f"{post_title}\n\n{post_text}"
     # It is a strict condition; not having them increased data by 25% but that was not a good sacrifice
+    #   for more data we should switch to multi-hop
     if is_non(post_title) or is_non(post_text):
         prompt = None
     
@@ -96,9 +97,9 @@ def main():
     test_df  = dataset.iloc[n_train + n_val:]
 
     base_name = output_path.replace('.jsonl', '')
-    train_df.to_json(f"{base_name}_train.jsonl", lines=True, orient='records')
-    val_df.to_json(f"{base_name}_val.jsonl", lines=True, orient='records')
-    test_df.to_json(f"{base_name}_test.jsonl", lines=True, orient='records')
+    train_df.to_json(f"{base_name}_train.jsonl", lines=True, orient='records', ensure_ascii=False)
+    val_df.to_json(f"{base_name}_val.jsonl", lines=True, orient='records', ensure_ascii=False)
+    test_df.to_json(f"{base_name}_test.jsonl", lines=True, orient='records', ensure_ascii=False)
 
 
 if __name__ == "__main__":
