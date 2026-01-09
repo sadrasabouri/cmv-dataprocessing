@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --time=12:00:00
-#SBATCH --mem=64GB
+#SBATCH --mem=32GB
 #SBATCH --mail-type=END,FAIL
 #SBATCH --job-name=cmv-dataset-dpo-data
 #SBATCH --output=log/%j-%x.out
