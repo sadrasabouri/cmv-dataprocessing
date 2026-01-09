@@ -97,9 +97,9 @@ def main():
     test_df  = dataset.iloc[n_train + n_val:]
 
     base_name = output_path.replace('.jsonl', '')
-    train_df.to_json(f"{base_name}_train.jsonl", lines=True, orient='records', ensure_ascii=False)
-    val_df.to_json(f"{base_name}_val.jsonl", lines=True, orient='records', ensure_ascii=False)
-    test_df.to_json(f"{base_name}_test.jsonl", lines=True, orient='records', ensure_ascii=False)
+    train_df.to_json(f"{base_name}_train.jsonl", lines=True, orient='records', force_ascii=False)
+    val_df.to_json(f"{base_name}_val.jsonl", lines=True, orient='records', force_ascii=False)
+    test_df.to_json(f"{base_name}_test.jsonl", lines=True, orient='records', force_ascii=False)
 
 
 if __name__ == "__main__":
