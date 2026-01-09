@@ -276,19 +276,16 @@ def main():
     parser = argparse.ArgumentParser(description="Process a file")
     
     parser.add_argument('train_data_path', type=str, help='the preference data (training)')
-    parser.add_argument('dev_data_path', type=str, help='the preference data (dev)')
     parser.add_argument('model_name', type=str, help='name of model output file')
 
     args = parser.parse_args()
 
     train_data_path = args.train_data_path
-    dev_data_path = args.dev_data_path
     output_model_name = args.model_name
 
     # Train
     model, tokenizer = train_model(
         train_file=train_data_path,
-        dev_file=dev_data_path,
         model_name='bert-base-uncased',
         output_dir=output_model_name,
         epochs=3,
