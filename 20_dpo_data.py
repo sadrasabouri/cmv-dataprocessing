@@ -39,9 +39,10 @@ def select_chosen_reject(df: pd.DataFrame) -> pd.Series:
     assert chosen['conversation'][0] == reject['conversation'][0]
     post_title = chosen['post_title']
     post_text = chosen['conversation'][0]
+    if is_non(post_text):
+        post_text = ""
     prompt = f"{post_title}\n\n{post_text}"
-    # strict condition: remove all bad posts
-    if is_non(post_title) or is_non(post_text):
+    if is_non(post_title):
         prompt = None
     
     # TODO: should be better for multi-hop
