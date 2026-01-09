@@ -15,12 +15,11 @@ import random
 
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY", None)
 CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
-BATCH_SIZE = 64
 
 # load model
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 LEARNING_RATE = 5e-5
-BATCH_SIZE = 1
+BATCH_SIZE = 64
 NUM_EPOCHS = 3
 wandb.login(key=WANDB_API_KEY)
 
@@ -32,7 +31,7 @@ def model_response_gen(model, tokenizer, prompts, batch_size: int = BATCH_SIZE) 
 
     terminators = [tokenizer.eos_token_id, tokenizer.convert_tokens_to_ids("<|eot_id|>")]
 
-    for i in tqdm(range(0, len(prompts), batch_size), desc="Running Inference", unit="batch"):
+    for i in tqdm(range(0, len(prompts), batch_size), desc="Running Inference", unit="prompt"):
         batch_prompts = prompts[i:i + batch_size]
         messages_batch = [
             [{"role": "user", "content": p}]
@@ -73,7 +72,7 @@ def model_loss(model, tokenizer, prompts, chosen_list, rejected_list, batch_size
     model.eval()
     ignore_index = nn.CrossEntropyLoss().ignore_index
 
-    for i in tqdm(range(0, len(prompts), batch_size), desc="Calculating Losses", unit="batch"):
+    for i in tqdm(range(0, len(prompts), batch_size), desc="Calculating Losses", unit="prompt"):
         batch_prompts = prompts[i:i + batch_size]
         batch_chosen = chosen_list[i:i + batch_size]
         batch_rejected = rejected_list[i:i + batch_size]
