@@ -11,9 +11,11 @@ import os
 import argparse 
 import wandb
 import sys
+import random
 
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY", None)
 CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
+BATCH_SIZE = 64
 
 # load model
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
@@ -24,63 +26,95 @@ wandb.login(key=WANDB_API_KEY)
 
 #############################
 
-def model_response_gen(model, tokenizer, prompts) -> List[str]:
-    results = []
-    for prompt in tqdm(prompts, desc="Running Inference", unit="prompt"):
-        messages = [{"role": "user", "content": prompt},]
-        input_ids = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt").to(model.device)
-        terminators = [tokenizer.eos_token_id, tokenizer.convert_tokens_to_ids("<|eot_id|>")]
-        outputs = model.generate(
-            input_ids,
-            max_new_tokens=512,
-            eos_token_id=terminators,
-            do_sample=True,
-            temperature=0.6,
-            top_p=0.9,
-        )
-        response = outputs[0][input_ids.shape[-1]:]
-        model_response = tokenizer.decode(response, skip_special_tokens=True)
-        print(f"Prompt: {prompt}\nModel Response: {model_response}\n{'-'*40}", flush=True)
-        results.append(model_response)
-    return results
-
-
-def model_loss(model, tokenizer, prompts, chosen_list, rejected_list) -> List[Dict]:
+def model_response_gen(model, tokenizer, prompts, batch_size: int = BATCH_SIZE) -> List[str]:
     results = []
     model.eval()
 
-    for prompt, chosen, rejected in tqdm(zip(prompts, chosen_list, rejected_list), desc="Calculating Losses", total=len(prompts)):
-        losses = {}
-        for label, answer in [("chosen", chosen), ("rejected", rejected)]:
-            messages = [
-                {"role": "user", "content": prompt},
-                {"role": "assistant", "content": answer}
+    terminators = [tokenizer.eos_token_id, tokenizer.convert_tokens_to_ids("<|eot_id|>")]
+
+    for i in tqdm(range(0, len(prompts), batch_size), desc="Running Inference", unit="batch"):
+        batch_prompts = prompts[i:i + batch_size]
+        messages_batch = [
+            [{"role": "user", "content": p}]
+            for p in batch_prompts
+        ]
+        input_ids = tokenizer.apply_chat_template(
+            messages_batch,
+            add_generation_prompt=True,
+            return_tensors="pt",
+            padding=True
+        ).to(model.device)
+        attention_mask = input_ids.ne(tokenizer.pad_token_id)
+        with torch.no_grad():
+            outputs = model.generate(
+                input_ids,
+                attention_mask=attention_mask,
+                max_new_tokens=512,
+                eos_token_id=terminators,
+                do_sample=True,
+                temperature=0.6,
+                top_p=0.9,
+            )
+        for j in range(len(batch_prompts)):
+            prompt_len = attention_mask[j].sum()
+            response_ids = outputs[j][prompt_len:]
+            model_response = tokenizer.decode(
+                response_ids,
+                skip_special_tokens=True
+            )
+            results.append(model_response)
+            if j == 0:
+                print(f"> Prompt: {batch_prompts[j][:200]}\n>Model Response: {model_response[:200]}\n"f"{'-'*40}", flush=True)
+    return results
+
+
+def model_loss(model, tokenizer, prompts, chosen_list, rejected_list, batch_size: int = BATCH_SIZE) -> List[Dict]:
+    results = []
+    model.eval()
+    ignore_index = nn.CrossEntropyLoss().ignore_index
+
+    for i in tqdm(range(0, len(prompts), batch_size), desc="Calculating Losses", unit="batch"):
+        batch_prompts = prompts[i:i + batch_size]
+        batch_chosen = chosen_list[i:i + batch_size]
+        batch_rejected = rejected_list[i:i + batch_size]
+        batch_losses = {}
+
+        for label, answers in [("chosen", batch_chosen),
+                               ("rejected", batch_rejected)]:
+            messages_batch = [
+                [
+                    {"role": "user", "content": p},
+                    {"role": "assistant", "content": a},
+                ]
+                for p, a in zip(batch_prompts, answers)
             ]
-            full_input = tokenizer.apply_chat_template(messages,
-                                                       return_tensors="pt",
-                                                       add_generation_prompt=False).to(model.device)
-            prompt_messages = [{"role": "user", "content": prompt}]
-            prompt_input = tokenizer.apply_chat_template(prompt_messages,
-                                                         return_tensors="pt",
-                                                         add_generation_prompt=True).to(model.device)
-            prompt_len = prompt_input.shape[1]
+            full_input = tokenizer.apply_chat_template(messages_batch, return_tensors="pt", padding=True, add_generation_prompt=False).to(model.device)
+            prompt_only = tokenizer.apply_chat_template([[{"role": "user", "content": p}] for p in batch_prompts], return_tensors="pt", padding=True, add_generation_prompt=True).to(model.device)
+            prompt_lens = prompt_only.ne(tokenizer.pad_token_id).sum(dim=1)
+
             labels = full_input.clone()
-            labels[:, :prompt_len] = nn.CrossEntropyLoss().ignore_index  
-            
+            for idx, plen in enumerate(prompt_lens):
+                labels[idx, :plen] = ignore_index
+
             with torch.no_grad():
                 outputs = model(full_input, labels=labels)
-                loss = outputs.loss.item()
-                losses[f"{label}_loss"] = loss
-        
-        print('='*20, flush=True)
-        print(f"Chosen Loss: {losses['chosen_loss']}, Rejected Loss: {losses['rejected_loss']}\n{'-'*40}", flush=True)
-        results.append({
-            "chosen_loss": losses["chosen_loss"],
-            "rejected_loss": losses["rejected_loss"],
-            "loss_margin": losses["rejected_loss"] - losses["chosen_loss"],
-            "correct": losses["rejected_loss"] > losses["chosen_loss"] # Positive margin means model prefers 'chosen'
-        })
-        
+                loss = outputs.loss.detach().cpu()
+
+            batch_losses[label] = loss
+
+        for j in range(len(batch_prompts)):
+            chosen_loss = batch_losses["chosen"][j].item()
+            rejected_loss = batch_losses["rejected"][j].item()
+
+            print('=' * 20, flush=True)
+            print(f"Chosen Loss: {chosen_loss}, Rejected Loss: {rejected_loss}\n", flush=True)
+            results.append({
+                "chosen_loss": chosen_loss,
+                "rejected_loss": rejected_loss,
+                "loss_margin": rejected_loss - chosen_loss,
+                "correct": rejected_loss > chosen_loss
+            })
+
     return results
 
 
