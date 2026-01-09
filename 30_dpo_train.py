@@ -15,9 +15,9 @@ CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
 
 # load model
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-LEARNING_RATE = 2e-4
+LEARNING_RATE = 5e-5
 BATCH_SIZE = 1
-NUM_EPOCHS = 10
+NUM_EPOCHS = 3
 wandb.login(key=WANDB_API_KEY)
 
 
@@ -43,7 +43,7 @@ def load_data(path_to_data: str) -> Dataset:
             line = line.strip()
             if not line:
                 continue
-        data = json.load(f)
+        data = json.load(line)
         prompt_list.append(data['prompt'])
         chosen_list.append(data['chosen'])
         rejected_list.append(data['rejected'])
@@ -77,7 +77,8 @@ def main():
         logging_steps=10,
         per_device_train_batch_size=1,
         save_only_model=True,
-        learning_rate=LEARNING_RATE
+        learning_rate=LEARNING_RATE,
+        num_train_epochs=NUM_EPOCHS,
     )
 
     # TODO: play around with config
@@ -93,7 +94,7 @@ def main():
         model,
         args=training_args,
         train_dataset=load_data(train_data_path),
-        dev_dataset=load_data(dev_data_path),
+        eval_dataset=load_data(dev_data_path),
         processing_class=tokenizer,
         peft_config=peft_config,
     )
