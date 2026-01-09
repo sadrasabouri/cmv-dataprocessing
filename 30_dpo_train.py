@@ -43,10 +43,10 @@ def load_data(path_to_data: str) -> Dataset:
             line = line.strip()
             if not line:
                 continue
-        data = json.load(line)
-        prompt_list.append(data['prompt'])
-        chosen_list.append(data['chosen'])
-        rejected_list.append(data['rejected'])
+            data = json.load(line)
+            prompt_list.append(data['prompt'])
+            chosen_list.append(data['chosen'])
+            rejected_list.append(data['rejected'])
 
     # TODO: check the effect of 'position'
     position_list = ['against' for _ in range(len(prompt_list))]
