@@ -101,7 +101,7 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     print("Model loaded on %s" % device)
-    test_dataset["model_response"] = model_response_gen([prompt for prompt in test_dataset["prompt"]])
+    test_dataset["model_response"] = model_response_gen(model, tokenizer, [prompt for prompt in test_dataset["prompt"]])
     loss_df = pd.DataFrame(model_loss(model,
                                       tokenizer,
                                       prompts=[prompt for prompt in test_dataset["prompt"]],
@@ -118,7 +118,7 @@ def main():
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.to(device)
         print("Model loaded on %s" % device)
-        test_dataset["base_response"] = model_response_gen([prompt for prompt in test_dataset["prompt"]])
+        test_dataset["base_response"] = model_response_gen(model, tokenizer, [prompt for prompt in test_dataset["prompt"]])
         loss_df = pd.DataFrame(model_loss(model,
                                         tokenizer,
                                         prompts=[prompt for prompt in test_dataset["prompt"]],
