@@ -11,20 +11,19 @@ import os
 from tqdm import tqdm
 
 WANDB_API_KEY = os.environ.get("WANDB_API_KEY", None)
+CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
 
 # load model
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 LEARNING_RATE = 2e-4
 BATCH_SIZE = 1
 NUM_EPOCHS = 10
-cache_dir = ".cache" # REPLACE WITH CACHE DIR
 wandb.login(key=WANDB_API_KEY)
 
-#############################
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, cache_dir=cache_dir)
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, cache_dir=CACHE_DIR)
 tokenizer.pad_token = tokenizer.eos_token
-model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, cache_dir=cache_dir)
+model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, cache_dir=CACHE_DIR)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 print("Model loaded on %s" % device)
@@ -51,11 +50,12 @@ def load_data(path_to_data: str) -> Dataset:
 
     # TODO: check the effect of 'position'
     position_list = ['against' for _ in range(len(prompt_list))]
-    train_dataset = Dataset.from_dict({
+    dataset = Dataset.from_dict({
         'prompt': prompt_list,
         'position': position_list,
         'chosen': chosen_list,
         'rejected': rejected_list})
+    return dataset
 
 
 def main():

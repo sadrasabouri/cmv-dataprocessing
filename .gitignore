@@ -219,3 +219,4 @@ __marimo__/
 ~*.pkl
 ~*.csv
 data/
+*job
