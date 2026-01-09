@@ -233,3 +233,16 @@ def get_chat_hist(
 
         parent_id = comment.get('parent_id')
     return text, authors, ids
+
+
+def is_non(text: str) -> bool:
+    """
+    Determines if a string is None.
+
+    :param text: the give text
+    """
+    if text is None:
+        return True
+    if text in ['null', '[deleted]', '[removed]']:
+        return True
+    return False

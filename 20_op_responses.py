@@ -1,19 +1,16 @@
 """Extract OP responses."""
 
 import pandas as pd
-import sys
-from tqdm import tqdm
 import os
 import json
 import pickle
 import argparse
-from utils.functions import get_comment_by_id
 from utils.functions import extract_indexed_comment_map, extract_indexed_post_map
 from utils.functions import get_delta, fix_deltas, extract_deltas
 
 
 def main():
-    parser = argparse.ArgumentParser(description="The second tool for creating dataset by joining datasources.")
+    parser = argparse.ArgumentParser(description="A tool for extracting OP responses.")
     
     parser.add_argument('submissions_path', type=str, help="Path to the r/changemyview submission jsonl dump")
     parser.add_argument('comments_path', type=str, help="Path to the r/changemyview comments jsonl dump")
