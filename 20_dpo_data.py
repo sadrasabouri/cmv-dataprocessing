@@ -17,6 +17,7 @@ Output format is a jsonl with fields like:
 import json
 import argparse
 import pandas as pd
+from tqdm import tqdm
 from utils.functions import is_non
 
 def select_chosen_reject(df: pd.DataFrame) -> pd.Series:
@@ -38,7 +39,7 @@ def select_chosen_reject(df: pd.DataFrame) -> pd.Series:
     assert chosen['conversation'][0] == reject['conversation'][0]
     post_title = chosen['post_title']
     post_text = chosen['conversation'][0]
-    prompt = f"{post_title}\n{post_text}"
+    prompt = f"{post_title}\n\n{post_text}"
     # strict condition: remove all bad posts
     if is_non(post_title) or is_non(post_text):
         prompt = None
@@ -59,16 +60,18 @@ def main():
     
     parser.add_argument('cmv_delta_path', type=str, help="Path to the cmv_delta dataset json")
     parser.add_argument('output_path', type=str, help="Directory to which the output is going to save")
+    parser.add_argument('--seed', type=int, help="Random seed for the shuffling", default=42)
 
     args = parser.parse_args()
 
     cmv_delta_path = args.cmv_delta_path
     output_path = args.output_path
+    seed = args.seed
 
     one_hop_comments = []
     # to decrease the memory usage:
     with open(cmv_delta_path, 'r') as f:
-        for line in f:
+        for line in tqdm(f, desc="Loading delta ..."):
             line = line.strip()
             if not line:
                 continue
@@ -82,7 +85,20 @@ def main():
         .apply(select_chosen_reject, include_groups=False)
         .dropna()
     )
-    dataset.to_json(output_path, lines=True, orient='records')
+    dataset = dataset.sample(frac=1, random_state=seed).reset_index(drop=True)
+
+    n = len(dataset)
+    n_train = int(0.8 * n)
+    n_val   = int(0.1 * n)
+
+    train_df = dataset.iloc[:n_train]
+    val_df   = dataset.iloc[n_train:n_train + n_val]
+    test_df  = dataset.iloc[n_train + n_val:]
+
+    base_name = output_path.replace('.jsonl', '')
+    train_df.to_json(f"{base_name}_train.jsonl", lines=True, orient='records')
+    val_df.to_json(f"{base_name}_val.jsonl", lines=True, orient='records')
+    test_df.to_json(f"{base_name}_test.jsonl", lines=True, orient='records')
 
 
 if __name__ == "__main__":
