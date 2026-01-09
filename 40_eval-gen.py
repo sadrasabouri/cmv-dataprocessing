@@ -40,6 +40,7 @@ def model_response_gen(model, tokenizer, prompts) -> List[str]:
         )
         response = outputs[0][input_ids.shape[-1]:]
         model_response = tokenizer.decode(response, skip_special_tokens=True)
+        print(f"Prompt: {prompt}\nModel Response: {model_response}\n{'-'*40}", flush=True)
         results.append(model_response)
     return results
 
@@ -71,6 +72,8 @@ def model_loss(model, tokenizer, prompts, chosen_list, rejected_list) -> List[Di
                 loss = outputs.loss.item()
                 losses[f"{label}_loss"] = loss
         
+        print('='*20, flush=True)
+        print(f"Chosen Loss: {losses['chosen_loss']}, Rejected Loss: {losses['rejected_loss']}\n{'-'*40}", flush=True)
         results.append({
             "chosen_loss": losses["chosen_loss"],
             "rejected_loss": losses["rejected_loss"],
