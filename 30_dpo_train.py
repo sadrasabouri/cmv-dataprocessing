@@ -28,6 +28,45 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 print("Model loaded on %s" % device)
 
+def load_data_conv(path_to_data: str, tokenizer) -> Dataset:
+    formatted_data = {
+        "prompt": [],
+        "chosen": [],
+        "rejected": []
+    }
+    
+    with open(path_to_data, 'r') as f:
+        for line in f:
+            if not line.strip(): continue
+            item = json.loads(line)
+            
+            # 1. Define the message structure for the prompt
+            prompt_messages = [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": item['prompt']}
+            ]
+            
+            # 2. Apply template to the prompt 
+            # tokenize=False gives us the string with <|begin_of_text|>, etc.
+            # add_generation_prompt=True adds the "<|start_header_id|>assistant<|end_header_id|>\n\n" suffix
+            full_prompt = tokenizer.apply_chat_template(
+                prompt_messages, 
+                tokenize=False, 
+                add_generation_prompt=True
+            )
+            
+            # 3. Format responses (adding the End-of-Turn token)
+            # Llama 3.1 expects <|eot_id|> at the end of every turn
+            chosen_response = item['chosen'] + tokenizer.eos_token
+            rejected_response = item['rejected'] + tokenizer.eos_token
+            
+            formatted_data["prompt"].append(full_prompt)
+            formatted_data["chosen"].append(chosen_response)
+            formatted_data["rejected"].append(rejected_response)
+
+    return Dataset.from_dict(formatted_data)
+
+
 def load_data(path_to_data: str) -> Dataset:
     """
     Load the given data into a dataset object.
@@ -93,8 +132,8 @@ def main():
     dpo_trainer = DPOTrainer(
         model,
         args=training_args,
-        train_dataset=load_data(train_data_path),
-        eval_dataset=load_data(dev_data_path),
+        train_dataset=load_data_conv(train_data_path, tokenizer),
+        eval_dataset=load_data_conv(dev_data_path, tokenizer),
         processing_class=tokenizer,
         peft_config=peft_config,
     )
