@@ -43,7 +43,7 @@ def load_data(path_to_data: str) -> Dataset:
             line = line.strip()
             if not line:
                 continue
-            data = json.load(line)
+            data = json.loads(line)
             prompt_list.append(data['prompt'])
             chosen_list.append(data['chosen'])
             rejected_list.append(data['rejected'])
