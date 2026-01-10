@@ -65,7 +65,7 @@ def model_response_gen(model, tokenizer, prompts, batch_size: int = BATCH_SIZE) 
 def model_loss(model, tokenizer, prompts, chosen_list, rejected_list, batch_size: int = BATCH_SIZE) -> List[Dict]:
     results = []
     model.eval()
-    ignore_index = nn.CrossEntropyLoss().ignore_index
+    ignore_index = -100  # Standard ignore index for CrossEntropyLoss
 
     for i in tqdm(range(0, len(prompts), batch_size), desc="Calculating Losses", unit="prompt"):
         batch_prompts = prompts[i:i + batch_size]
@@ -91,10 +91,17 @@ def model_loss(model, tokenizer, prompts, chosen_list, rejected_list, batch_size
                 labels[idx, :plen] = ignore_index
 
             with torch.no_grad():
-                outputs = model(full_input, labels=labels)
-                loss = outputs.loss.detach().cpu()
+                outputs = model(full_input)
+                logits = outputs.logits
+                shift_logits = logits[..., :-1, :].contiguous()
+                shift_labels = labels[..., 1:].contiguous()
+                loss_fct = nn.CrossEntropyLoss(ignore_index=ignore_index, reduction='none')
+                loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+                loss = loss.view(shift_labels.size(0), -1)
+                loss_per_sample = loss.sum(dim=1) / (shift_labels != ignore_index).sum(dim=1).float()
+                loss_per_sample = loss_per_sample.detach().cpu()
 
-            batch_losses[label] = loss
+            batch_losses[label] = loss_per_sample
 
         for j in range(len(batch_prompts)):
             chosen_loss = batch_losses["chosen"][j].item()
