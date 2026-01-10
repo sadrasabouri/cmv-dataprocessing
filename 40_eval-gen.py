@@ -19,7 +19,7 @@ CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
 # load model
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 LEARNING_RATE = 5e-5
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 NUM_EPOCHS = 3
 wandb.login(key=WANDB_API_KEY)
 
