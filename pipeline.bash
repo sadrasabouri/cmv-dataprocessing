@@ -5,6 +5,14 @@
 #SBATCH --job-name=cmv-dataset-pipeline
 #SBATCH --output=log/%j-%x.out
 
+get_seeded_random()
+{
+  seed="$1"
+  openssl enc -aes-256-ctr -pass pass:"$seed" -nosalt \
+    </dev/zero 2>/dev/null
+}
+
+
 DATA_DIR="../cmv/reddit/subreddits24"
 DELTA_LOG_SUB="$DATA_DIR/DeltaLog_submissions"
 CMV_SUB="$DATA_DIR/changemyview_submissions"
@@ -29,6 +37,9 @@ grep -Ff <(sed 's/^/link_id":"t3_/; s/$/"/' $SUBMISSIONS_W_DELTA) $CMV_COMMENTS 
 echo "10. Making the dataset ..."
 CMV_DATASET="data/cmv_data.jsonl"
 python 10_make_dataset.py $CMV_DELTA_FILTERED_SUB $CMV_DELTA_FILTERED_COMMENT $DELTA $CMV_DATASET
+
+echo "15. Shuffling the dataset ..."
+shuf --random-source=<(get_seeded_random 42) $CMV_DATASET > "$CMV_DATASET-shuf"
 
 echo "20. OP responses w/wo delta"
 python 20_op_responses.py $CMV_DELTA_FILTERED_SUB $CMV_DELTA_FILTERED_COMMENT $DELTA --use-cache
