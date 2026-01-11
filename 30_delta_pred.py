@@ -56,76 +56,82 @@ class DeltaDataset(Dataset):
             'labels': torch.tensor(self.labels[idx], dtype=torch.long)
         }
 
-parser = argparse.ArgumentParser(description="Process a file")
 
-parser.add_argument('data_path', type=str, help='the cmv_delta.jsonl file')
-parser.add_argument('model_name', type=str, help='name of model output file')
+def main():
+    parser = argparse.ArgumentParser(description="Process a file")
 
-args = parser.parse_args()
+    parser.add_argument('data_path', type=str, help='the cmv_delta.jsonl file')
+    parser.add_argument('model_name', type=str, help='name of model output file')
 
-train_data_path = args.train_data_path
-model_name = args.model_name
+    args = parser.parse_args()
 
-df = load_data(train_data_path)
+    data_path = args.data_path
+    model_name = args.model_name
 
-df['text'] = df.apply(format_text, axis=1)
-df['label'] = df['is_op_delta'].astype(int)
+    df = load_data(data_path)
 
-train_texts, val_texts, train_labels, val_labels = train_test_split(
-    df['text'].tolist(), df['label'].tolist(), test_size=0.2, random_state=42
-)
+    df['text'] = df.apply(format_text, axis=1)
+    df['label'] = df['is_op_delta'].astype(int)
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
+    train_texts, val_texts, train_labels, val_labels = train_test_split(
+        df['text'].tolist(), df['label'].tolist(), test_size=0.2, random_state=42
+    )
 
-train_dataset = DeltaDataset(train_texts, train_labels, tokenizer)
-val_dataset = DeltaDataset(val_texts, val_labels, tokenizer)
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+    model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=2)
 
-train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-val_loader = DataLoader(val_dataset, batch_size=8)
+    train_dataset = DeltaDataset(train_texts, train_labels, tokenizer)
+    val_dataset = DeltaDataset(val_texts, val_labels, tokenizer)
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-model.to(device)
+    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=8)
 
-optimizer = AdamW(model.parameters(), lr=2e-5)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
 
-epochs = 3
-for epoch in range(epochs):
-    model.train()
-    total_loss = 0
-    
-    for batch in train_loader:
-        optimizer.zero_grad()
+    optimizer = AdamW(model.parameters(), lr=2e-5)
+
+    epochs = 3
+    for epoch in range(epochs):
+        model.train()
+        total_loss = 0
         
-        input_ids = batch['input_ids'].to(device)
-        attention_mask = batch['attention_mask'].to(device)
-        labels = batch['labels'].to(device)
-        
-        outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-        loss = outputs.loss
-        
-        loss.backward()
-        optimizer.step()
-        
-        total_loss += loss.item()
-    
-    model.eval()
-    correct = 0
-    total = 0
-    
-    with torch.no_grad():
-        for batch in val_loader:
+        for batch in train_loader:
+            optimizer.zero_grad()
+            
             input_ids = batch['input_ids'].to(device)
             attention_mask = batch['attention_mask'].to(device)
             labels = batch['labels'].to(device)
             
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
-            predictions = torch.argmax(outputs.logits, dim=1)
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+            loss = outputs.loss
             
-            correct += (predictions == labels).sum().item()
-            total += labels.size(0)
-    
-    print(f'Epoch {epoch+1}: Loss={total_loss/len(train_loader):.4f}, Accuracy={correct/total:.4f}')
+            loss.backward()
+            optimizer.step()
+            
+            total_loss += loss.item()
+        
+        model.eval()
+        correct = 0
+        total = 0
+        
+        with torch.no_grad():
+            for batch in val_loader:
+                input_ids = batch['input_ids'].to(device)
+                attention_mask = batch['attention_mask'].to(device)
+                labels = batch['labels'].to(device)
+                
+                outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+                predictions = torch.argmax(outputs.logits, dim=1)
+                
+                correct += (predictions == labels).sum().item()
+                total += labels.size(0)
+        
+        print(f'Epoch {epoch+1}: Loss={total_loss/len(train_loader):.4f}, Accuracy={correct/total:.4f}')
 
-model.save_pretrained(model_name)
-tokenizer.save_pretrained(model_name)
+    model.save_pretrained(model_name)
+    tokenizer.save_pretrained(model_name)
+
+
+if __name__ == "__main__":
+    main()
