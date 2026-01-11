@@ -16,7 +16,6 @@ CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 LEARNING_RATE = 2e-5  # SFT usually uses lower LR than DPO
 BATCH_SIZE = 4        # Can be higher for SFT than DPO
-MAX_SEQ_LENGTH = 2048
 wandb.login(key=WANDB_API_KEY)
 
 def load_sft_data(path_to_data: str) -> Dataset:
@@ -72,7 +71,6 @@ def main():
     # 2. Configure SFT specific arguments
     sft_config = SFTConfig(
         output_dir=model_name,
-        max_seq_length=MAX_SEQ_LENGTH,
         per_device_train_batch_size=BATCH_SIZE,
         gradient_accumulation_steps=4,
         learning_rate=LEARNING_RATE,
@@ -80,7 +78,6 @@ def main():
         completion_only_loss=True,
         num_train_epochs=3,
         logging_steps=10,
-        bf16=True,
         packing=True, # Packs multiple samples into one sequence for 2x speedup
         # Important: Don't train on the prompt, only the assistant's response
         dataset_kwargs={
