@@ -6,6 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import BertTokenizer, BertForSequenceClassification
 from sklearn.model_selection import train_test_split
 import json
+import argparse
 
 
 def load_data(file_path):
@@ -55,8 +56,17 @@ class DeltaDataset(Dataset):
             'labels': torch.tensor(self.labels[idx], dtype=torch.long)
         }
 
+parser = argparse.ArgumentParser(description="Process a file")
 
-df = load_data('your_file.jsonl')
+parser.add_argument('data_path', type=str, help='the cmv_delta.jsonl file')
+parser.add_argument('model_name', type=str, help='name of model output file')
+
+args = parser.parse_args()
+
+train_data_path = args.train_data_path
+model_name = args.model_name
+
+df = load_data(train_data_path)
 
 df['text'] = df.apply(format_text, axis=1)
 df['label'] = df['is_op_delta'].astype(int)
@@ -117,5 +127,5 @@ for epoch in range(epochs):
     
     print(f'Epoch {epoch+1}: Loss={total_loss/len(train_loader):.4f}, Accuracy={correct/total:.4f}')
 
-model.save_pretrained('delta_model')
-tokenizer.save_pretrained('delta_model')
+model.save_pretrained(model_name)
+tokenizer.save_pretrained(model_name)
