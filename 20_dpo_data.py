@@ -32,6 +32,7 @@ def select_chosen_reject(df: pd.DataFrame) -> pd.Series:
     if true_rows.empty or false_rows.empty:
         return None  # drop posts without both
 
+    # TODO: should check if the rejected nor the chosen is not non
     chosen = true_rows.sample(1).iloc[0]
     reject = false_rows.sample(1).iloc[0]
     
