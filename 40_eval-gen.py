@@ -118,6 +118,19 @@ def model_loss(model, tokenizer, prompts, chosen_list, rejected_list, batch_size
 
     return results
 
+def get_response_loss_of(model_name: str, dataset: pd.DataFrame):
+    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=CACHE_DIR)
+    tokenizer.pad_token = tokenizer.eos_token
+    model = AutoModelForCausalLM.from_pretrained(model_name, cache_dir=CACHE_DIR, device_map="auto")
+    dataset[f'{model_name}_response'] = model_response_gen(model, tokenizer, [prompt for prompt in dataset["prompt"]])
+    loss_df = pd.DataFrame(model_loss(model,
+                                      tokenizer,
+                                      prompts=[prompt for prompt in dataset["prompt"]],
+                                      chosen_list=[prompt for prompt in dataset["chosen"]],
+                                      rejected_list=[prompt for prompt in dataset["rejected"]]))
+    loss_df = loss_df.rename({x: f'{{model_name}}_{x}' for x in loss_df.columns})
+    return pd.concat([dataset, loss_df], axis=1)
+
 
 def main():
     # Initialize the argument parser
@@ -133,40 +146,12 @@ def main():
     model_name = args.model_name
     test_dataset = pd.read_json(args.test_dataset, lines=True, orient='records')
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=CACHE_DIR)
-    tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained(model_name, cache_dir=CACHE_DIR)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    print("Model loaded on %s" % device)
-    test_dataset["model_response"] = model_response_gen(model, tokenizer, [prompt for prompt in test_dataset["prompt"]])
-    loss_df = pd.DataFrame(model_loss(model,
-                                      tokenizer,
-                                      prompts=[prompt for prompt in test_dataset["prompt"]],
-                                      chosen_list=[prompt for prompt in test_dataset["chosen"]],
-                                      rejected_list=[prompt for prompt in test_dataset["rejected"]]))
-    loss_df = loss_df.rename({x: f'model_{x}' for x in loss_df.columns})
-    test_dataset = pd.concat([test_dataset, loss_df], axis=1)
-
+    test_dataset = get_response_loss_of(model_name, test_dataset)
 
     if args.base_model:
-        tokenizer = AutoTokenizer.from_pretrained(args.base_model, cache_dir=CACHE_DIR)
-        tokenizer.pad_token = tokenizer.eos_token
-        model = AutoModelForCausalLM.from_pretrained(args.base_model, cache_dir=CACHE_DIR)
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model.to(device)
-        print("Model loaded on %s" % device)
-        test_dataset["base_response"] = model_response_gen(model, tokenizer, [prompt for prompt in test_dataset["prompt"]])
-        loss_df = pd.DataFrame(model_loss(model,
-                                        tokenizer,
-                                        prompts=[prompt for prompt in test_dataset["prompt"]],
-                                        chosen_list=[prompt for prompt in test_dataset["chosen"]],
-                                        rejected_list=[prompt for prompt in test_dataset["rejected"]]))
-        loss_df = loss_df.rename({x: f'base_{x}' for x in loss_df.columns})
-        test_dataset = pd.concat([test_dataset, loss_df], axis=1)
+        test_dataset = get_response_loss_of(args.base_model, test_dataset)
 
     test_dataset.to_csv(output_file, index=False)
-
 
 if __name__ == "__main__":
     main()
