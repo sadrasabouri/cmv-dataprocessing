@@ -13,3 +13,4 @@ DELTA_RE = re.compile(
 )
 
 DELTA_DEFAULT = {"is_op_delta": False, "count": 0}
+NONE_ELEMENTS = [None, 'null', '[deleted]', '[removed]']

@@ -18,7 +18,7 @@ import json
 import argparse
 import pandas as pd
 from tqdm import tqdm
-from utils.functions import is_non, post_text_cleaning
+from utils.functions import has_non_in_conv, post_text_cleaning
 
 
 def select_chosen_reject(df: pd.DataFrame) -> pd.Series:
@@ -41,18 +41,10 @@ def select_chosen_reject(df: pd.DataFrame) -> pd.Series:
     post_title = chosen['post_title']
     post_text = post_text_cleaning(chosen['conversation'][0])
     prompt = f"{post_title}\n\n{post_text}"
-    # It is a strict condition; not having them increased data by 25% but that was not a good sacrifice
-    #   for more data we should switch to multi-hop
-    if is_non(post_title) or is_non(post_text):
-        prompt = None
     
     # TODO: should be better for multi-hop
     chosen = '\n'.join(chosen['conversation'][1:])
-    if is_non(chosen):
-        chosen = None
     reject = '\n'.join(reject['conversation'][1:])
-    if is_non(reject):
-        reject = None
 
     return pd.Series({
         "prompt": prompt,
@@ -85,8 +77,9 @@ def main():
             if data.get('conversation_length', -1) == 2:
                 one_hop_comments.append(data)
     one_hop_comments = pd.DataFrame(one_hop_comments)
+    one_hop_comments['has_non'] = one_hop_comments.apply(has_non_in_conv, axis=1)
     dataset = (
-        one_hop_comments
+        one_hop_comments[one_hop_comments['has_non'] == True]
         .groupby("post_id")
         .apply(select_chosen_reject, include_groups=False)
         .dropna()

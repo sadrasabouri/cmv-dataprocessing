@@ -6,7 +6,7 @@ import json
 import pickle
 from tqdm import tqdm
 import pandas as pd
-from .params import DELTA_RE, DELTA_DEFAULT
+from .params import DELTA_RE, DELTA_DEFAULT, NONE_ELEMENTS
 
 
 def split_from_users(from_block: str) -> List:
@@ -241,11 +241,20 @@ def is_non(text: str) -> bool:
 
     :param text: the give text
     """
-    if text is None:
-        return True
-    if text in ['null', '[deleted]', '[removed]']:
-        return True
-    return False
+    return text in NONE_ELEMENTS
+
+
+def has_non_in_conv(record: pd.Series) -> bool:
+    """
+    Determine if the record conversation has a none element anywhere.
+        It is a strict condition; not having them increased data by
+        25% but that was not a good sacrifice.
+
+    :param record: the target record
+    """
+    none_in_conv = any([is_non(x) for x in record['conversation']])
+    none_in_title = is_non(record['post_title'])
+    return none_in_conv or none_in_title
 
 
 def post_text_cleaning(text: str) -> str:
