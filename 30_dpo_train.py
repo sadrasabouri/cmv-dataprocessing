@@ -104,7 +104,8 @@ def main():
         peft_config=peft_config,
     )
 
-    dpo_trainer.train()
+    with wandb.init(project="cmv-rlhf") as run:
+        dpo_trainer.train()
     dpo_trainer.save_model(model_name)
 
 
