@@ -73,7 +73,6 @@ def main():
         output_dir="llama",
         logging_steps=10,
         per_device_train_batch_size=1,
-        evaluation_strategy="steps",
         eval_steps=50,
         save_only_model=True,
         learning_rate=LEARNING_RATE,
