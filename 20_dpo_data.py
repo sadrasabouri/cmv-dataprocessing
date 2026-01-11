@@ -39,6 +39,7 @@ def select_chosen_reject(df: pd.DataFrame) -> pd.Series:
     assert chosen['post_title'] == reject['post_title']
     assert chosen['conversation'][0] == reject['conversation'][0]
     post_title = chosen['post_title']
+    # TODO: Consider removing `CMV:` from the title
     post_text = post_text_cleaning(chosen['conversation'][0])
     prompt = f"{post_title}\n\n{post_text}"
     
