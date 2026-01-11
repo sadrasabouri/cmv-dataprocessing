@@ -41,54 +41,6 @@ def format_text(row):
     return text
 
 
-# class DeltaDataset(Dataset):
-#     def __init__(self, df, tokenizer, max_length=512):
-#         self.labels = df['labels']
-#         self.pid = df['post_id']
-#         self.cid = df['comment_id']
-#         self.conversation_ids = df['conversation_ids']
-#         self.tokenizer = tokenizer
-#         self.max_length = max_length
-    
-#     def __len__(self):
-#         return len(self.labels)
-    
-#     def __getitem__(self, idx):
-#         format_text()
-#         encoding = self.tokenizer(
-#             self.texts[idx],
-#             truncation=True,
-#             padding='max_length',
-#             max_length=self.max_length,
-#         )
-#         item = {k: torch.tensor(v[idx]) for k, v in self.encodings.items()}
-#         item["labels"] = torch.tensor(self.labels[idx])
-#         return item
-#         return {
-#             'input_ids': encoding['input_ids'].flatten(),
-#             'attention_mask': encoding['attention_mask'].flatten(),
-#             'labels': torch.tensor(self.labels[idx], dtype=torch.long)
-#         }
-
-# # NEW; should merge
-# class DeltaDataset(Dataset):
-#     def __init__(self, texts, labels, tokenizer, max_length=512):
-#         self.encodings = tokenizer(
-#             texts,
-#             truncation=True,
-#             padding=True,
-#             max_length=max_length,
-#         )
-#         self.labels = labels
-
-#     def __len__(self):
-#         return len(self.labels)
-
-#     def __getitem__(self, idx):
-#         item = {k: torch.tensor(v[idx]) for k, v in self.encodings.items()}
-#         item["labels"] = torch.tensor(self.labels[idx])
-#         return item
-
 class DeltaDataset(Dataset):
     def __init__(self, texts, labels, tokenizer, max_length=512):
         self.texts = texts
@@ -129,10 +81,9 @@ def compute_metrics(eval_pred):
 def main():
     parser = argparse.ArgumentParser(description="Train a classifier for predicting delta")
 
-    parser.add_argument('data_path', type=str, help='the cmv_delta-rel.jsonl file')
+    parser.add_argument('data_path', type=str, help='the cmv_delta.jsonl file')
     parser.add_argument('model_name', type=str, help='name of model output file')
     parser.add_argument('--seed', type=int, help='random generation seed', default=42)
-    parser.add_argument('--use-cache', action="store_true", help='flag indicating use of cache')
 
     args = parser.parse_args()
 
@@ -143,7 +94,6 @@ def main():
     df['text'] = df.apply(format_text, axis=1)
     df['label'] = df['is_op_delta'].astype(int)
 
-    # train_df, val_df = train_test_split(df, test_size=0.2, random_state=args.seed)
     train_texts, val_texts, train_labels, val_labels = train_test_split(
         df['text'].tolist(), df['label'].tolist(), test_size=0.2, random_state=42
     )
@@ -151,8 +101,6 @@ def main():
     tokenizer = BertTokenizer.from_pretrained(BASE_MODEL)
     model = BertForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2, device_map="auto")
 
-    # train_dataset = DeltaDataset(train_df, tokenizer)
-    # val_dataset = DeltaDataset(val_df, tokenizer)
     train_dataset = DeltaDataset(train_texts, train_labels, tokenizer)
     val_dataset = DeltaDataset(val_texts, val_labels, tokenizer)
 
@@ -175,7 +123,6 @@ def main():
         metric_for_best_model="f1",
         # --- UX / infra ---
         report_to="wandb",
-        project="cmv-clf",
         seed=args.seed,
     )
     trainer = Trainer(
@@ -187,7 +134,8 @@ def main():
         compute_metrics=compute_metrics,
     )
 
-    trainer.train()
+    with wandb.init(project="cmv-clf") as run:
+        trainer.train()
     trainer.save_model(model_name)
     tokenizer.save_pretrained(model_name)
 
