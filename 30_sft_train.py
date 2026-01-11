@@ -88,7 +88,7 @@ def main():
 
     # 3. LoRA Configuration
     peft_config = LoraConfig(
-        lora_alpha=16,
+        lora_alpha=32,
         lora_dropout=0.05,
         r=16,
         bias="none",
