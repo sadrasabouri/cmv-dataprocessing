@@ -79,7 +79,7 @@ def main():
     one_hop_comments = pd.DataFrame(one_hop_comments)
     one_hop_comments['has_non'] = one_hop_comments.apply(has_non_in_conv, axis=1)
     dataset = (
-        one_hop_comments[one_hop_comments['has_non'] == True]
+        one_hop_comments[one_hop_comments['has_non'] == False]
         .groupby("post_id")
         .apply(select_chosen_reject, include_groups=False)
         .dropna()
