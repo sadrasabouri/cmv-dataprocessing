@@ -264,6 +264,6 @@ def post_text_cleaning(text: str) -> str:
 
     :param text: the post text
     """
-    text = re.sub(POST_FOOTNOTE, '', text)
+    text = re.sub(POST_FOOTNOTE, '', text, flags=re.IGNORECASE)
     text = re.sub(ENDING_LINE, '', text)
     return text
