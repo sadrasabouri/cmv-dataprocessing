@@ -13,7 +13,7 @@ import numpy as np
 
 
 BASE_MODEL = 'bert-base-uncased'
-BATCH_SIZE = 16
+BATCH_SIZE = 64
 EPOCHS = 3
 
 
@@ -117,7 +117,8 @@ def main():
         logging_steps=50,
         logging_first_step=True,
         # --- evaluation ---
-        eval_strategy="epoch",
+        eval_strategy="steps",
+        eval_steps=100_000,
         save_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="f1",
