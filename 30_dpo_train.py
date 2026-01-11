@@ -89,6 +89,7 @@ def main():
         r=8,
         bias="none",
         task_type="CAUSAL_LM",
+        target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
     )
 
     dpo_trainer = DPOTrainer(
