@@ -38,7 +38,6 @@ def load_data(path_to_data: str) -> Dataset:
     prompt_list = []
     chosen_list = []
     rejected_list = []
-    position_list = []
     with open(path_to_data, 'r') as f:
         for line in tqdm(f, desc="Loading delta ..."):
             line = line.strip()
@@ -49,11 +48,8 @@ def load_data(path_to_data: str) -> Dataset:
             chosen_list.append(data['chosen'])
             rejected_list.append(data['rejected'])
 
-    # TODO: check the effect of 'position'
-    position_list = ['against' for _ in range(len(prompt_list))]
     dataset = Dataset.from_dict({
         'prompt': prompt_list,
-        'position': position_list,
         'chosen': chosen_list,
         'rejected': rejected_list})
     return dataset
@@ -77,9 +73,17 @@ def main():
         output_dir="llama",
         logging_steps=10,
         per_device_train_batch_size=1,
+        evaluation_strategy="steps",
+        eval_steps=50,
         save_only_model=True,
         learning_rate=LEARNING_RATE,
         num_train_epochs=NUM_EPOCHS,
+        gradient_checkpointing=True,
+        report_to="wandb",
+        project="cmv-rlhf",
+        lr_scheduler_type="cosine",
+        warmup_ratio=0.1,
+        run_name=model_name,
     )
 
     # TODO: play around with config
@@ -101,8 +105,7 @@ def main():
         peft_config=peft_config,
     )
 
-    with wandb.init(project="cmv-rlhf") as run:
-        dpo_trainer.train()
+    dpo_trainer.train()
     dpo_trainer.save_model(model_name)
 
 
