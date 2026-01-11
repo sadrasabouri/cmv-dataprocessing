@@ -15,7 +15,7 @@ CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
 # --- Configuration ---
 MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 LEARNING_RATE = 2e-5  # SFT usually uses lower LR than DPO
-BATCH_SIZE = 4        # Can be higher for SFT than DPO
+BATCH_SIZE = 16        # Can be higher for SFT than DPO
 wandb.login(key=WANDB_API_KEY)
 
 def load_sft_data(path_to_data: str) -> Dataset:
