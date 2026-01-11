@@ -7,6 +7,7 @@ import pickle
 from tqdm import tqdm
 import pandas as pd
 from .params import DELTA_RE, DELTA_DEFAULT, NONE_ELEMENTS
+from .params import POST_FOOTNOTE, ENDING_LINE
 
 
 def split_from_users(from_block: str) -> List:
@@ -263,5 +264,6 @@ def post_text_cleaning(text: str) -> str:
 
     :param text: the post text
     """
-    pattern = r"(?:&amp;amp;gt;|&gt;|[\\>\s*])*This is a footnote from the CMV moderators.*"
-    return re.sub(pattern, '', text)
+    text = re.sub(POST_FOOTNOTE, '', text)
+    text = re.sub(ENDING_LINE, '', text)
+    return text
