@@ -145,7 +145,7 @@ def main():
                                       prompts=[prompt for prompt in test_dataset["prompt"]],
                                       chosen_list=[prompt for prompt in test_dataset["chosen"]],
                                       rejected_list=[prompt for prompt in test_dataset["rejected"]]))
-    loss_df.rename({x: f'model_{x}' for x in loss_df.columns})
+    loss_df = loss_df.rename({x: f'model_{x}' for x in loss_df.columns})
     test_dataset = pd.concat([test_dataset, loss_df], axis=1)
 
 
@@ -162,7 +162,7 @@ def main():
                                         prompts=[prompt for prompt in test_dataset["prompt"]],
                                         chosen_list=[prompt for prompt in test_dataset["chosen"]],
                                         rejected_list=[prompt for prompt in test_dataset["rejected"]]))
-        loss_df.rename({x: f'base_{x}' for x in loss_df.columns})
+        loss_df = loss_df.rename({x: f'base_{x}' for x in loss_df.columns})
         test_dataset = pd.concat([test_dataset, loss_df], axis=1)
 
     test_dataset.to_csv(output_file, index=False)
