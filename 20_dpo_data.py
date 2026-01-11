@@ -18,7 +18,8 @@ import json
 import argparse
 import pandas as pd
 from tqdm import tqdm
-from utils.functions import is_non
+from utils.functions import is_non, post_text_cleaning
+
 
 def select_chosen_reject(df: pd.DataFrame) -> pd.Series:
     """
@@ -32,14 +33,13 @@ def select_chosen_reject(df: pd.DataFrame) -> pd.Series:
     if true_rows.empty or false_rows.empty:
         return None  # drop posts without both
 
-    # TODO: should check if the rejected nor the chosen is not non
     chosen = true_rows.sample(1).iloc[0]
     reject = false_rows.sample(1).iloc[0]
     
     assert chosen['post_title'] == reject['post_title']
     assert chosen['conversation'][0] == reject['conversation'][0]
     post_title = chosen['post_title']
-    post_text = chosen['conversation'][0]
+    post_text = post_text_cleaning(chosen['conversation'][0])
     prompt = f"{post_title}\n\n{post_text}"
     # It is a strict condition; not having them increased data by 25% but that was not a good sacrifice
     #   for more data we should switch to multi-hop
@@ -48,7 +48,11 @@ def select_chosen_reject(df: pd.DataFrame) -> pd.Series:
     
     # TODO: should be better for multi-hop
     chosen = '\n'.join(chosen['conversation'][1:])
+    if is_non(chosen):
+        chosen = None
     reject = '\n'.join(reject['conversation'][1:])
+    if is_non(reject):
+        reject = None
 
     return pd.Series({
         "prompt": prompt,

@@ -246,3 +246,13 @@ def is_non(text: str) -> bool:
     if text in ['null', '[deleted]', '[removed]']:
         return True
     return False
+
+
+def post_text_cleaning(text: str) -> str:
+    """
+    Clean the post text.
+
+    :param text: the post text
+    """
+    pattern = r"(?:&amp;amp;gt;|&gt;|[\\>\s*])*This is a footnote from the CMV moderators.*"
+    return re.sub(pattern, '', text)
