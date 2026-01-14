@@ -101,6 +101,7 @@ def main():
             row_data = [prompt, lratio, std, predicted, actual]
             inference_table.add_data(*row_data)
             results_list.append(row_data)
+            print(lratio, std, predicted, actual)
 
             if i % 10 == 0:
                 wandb.log({"partial_results": inference_table})
