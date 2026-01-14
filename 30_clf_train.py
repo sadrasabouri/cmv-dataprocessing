@@ -13,7 +13,7 @@ import numpy as np
 
 
 BASE_MODEL = 'bert-base-uncased'
-BATCH_SIZE = 256
+BATCH_SIZE = 128
 EPOCHS = 3
 
 
