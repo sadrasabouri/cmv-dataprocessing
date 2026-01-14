@@ -16,3 +16,6 @@ DELTA_DEFAULT = {"is_op_delta": False, "count": 0}
 NONE_ELEMENTS = [None, 'null', '[deleted]', '[removed]']
 POST_FOOTNOTE = r"(?:&amp;amp;gt;|&gt;|[\\>\s*])*.*?footnote.*from.*moderators?.*"
 ENDING_LINE = r"\n\n_____$"
+
+AGREEMENT_TERMS = ["I agree", "You're right"]
+DISAGREEMENT_TERMS = ["I disagree", "You're wrong"]
