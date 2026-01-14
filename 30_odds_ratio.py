@@ -52,7 +52,7 @@ def compute_score(prompt, postfixes, model, tokenizer, n_samples=100):
     
     results = []
     for _ in range(n_samples):
-        results.append(_log_sum_exp(inputs_batch))
+        results.append(_log_sum_exp(model, inputs_batch))
 
     return np.mean(results), scipy.stats.sem(results)
 
