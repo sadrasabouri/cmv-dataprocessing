@@ -9,7 +9,7 @@ import argparse
 import scipy
 from torch.nn.utils.rnn import pad_sequence
 import os
-import tqdm
+from tqdm import tqdm
 import json
 from utils.params import AGREEMENT_TERMS, DISAGREEMENT_TERMS
 from utils.functions import post_text_cleaning
