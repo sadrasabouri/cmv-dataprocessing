@@ -10,7 +10,7 @@ import json
 import argparse
 import wandb
 import numpy as np
-
+from utils.functions import post_text_cleaning
 
 BASE_MODEL = 'bert-base-uncased'
 BATCH_SIZE = 128
@@ -32,7 +32,7 @@ def format_text(row):
     text = f"Title: {row['post_title']}\n\n"
     
     for author, message in zip(row['conversation_authors'], row['conversation']):
-        # TODO: clean the message
+        message = post_text_cleaning(message)
         if author not in author_map:
             author_map[author] = chr(counter)
             counter += 1
@@ -117,10 +117,10 @@ def main():
         logging_steps=50,
         logging_first_step=True,
         # --- evaluation ---
-        eval_strategy="steps",
-        eval_steps=1000,
-        save_strategy="steps",
-        save_steps=1000,
+        eval_strategy="epoch",
+        eval_steps=0.01,
+        save_strategy="epoch",
+        save_steps=0.05,
         load_best_model_at_end=True,
         metric_for_best_model="f1",
         # --- UX / infra ---
