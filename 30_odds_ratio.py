@@ -91,7 +91,7 @@ def main():
     args = parser.parse_args()
     
     # Initialize the Table object with columns
-    columns = ['prompt', 'log_ratio', 'std_log_ratio', 'predicted', 'actual', 'prompt_len']
+    columns = ['prompt', 'log_ratio', 'std_log_ratio', 'predicted', 'actual']
 
     data_path = args.data_path
     output_file = args.output
@@ -118,9 +118,8 @@ def main():
             std = np.sqrt(a_std**2 + d_std**2)
             predicted = lratio > 0
             actual = data['is_op_delta']
-            prompt_ntoken = len(tokenizer.encode(prompt, add_special_tokens=False))
 
-            row_data = [prompt, lratio, std, predicted, actual, prompt_ntoken]
+            row_data = [prompt, lratio, std, predicted, actual]
             results_list.append(row_data)
             print(lratio, std, predicted, actual, flush=True)
 
