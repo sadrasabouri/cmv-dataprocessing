@@ -1,5 +1,4 @@
 """BERT Delta Classifier"""
-# TODO: if memory issue persist we do relational dataset
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
@@ -10,7 +9,7 @@ import json
 import argparse
 import wandb
 import numpy as np
-from utils.functions import post_text_cleaning, has_non_in_conv
+from utils.functions import post_text_cleaning
 
 
 def load_data(file_path):
@@ -79,7 +78,7 @@ def main():
 
     parser.add_argument('data_path', type=str, help='the cmv_delta.jsonl file')
     parser.add_argument('output_model', type=str, help='name of model output file')
-    parser.add_argument('--model_name', type=str, help='name of base model', default="bert-base-uncased")
+    parser.add_argument('--model_name', type=str, help='name of base model', default="distilbert-base-uncased")
     parser.add_argument('--seed', type=int, help='random generation seed', default=42)
     parser.add_argument('--batch_size', type=int, help="batch size", default=32)
     parser.add_argument('--epochs', type=int, help="batch size", default=3)
@@ -107,25 +106,21 @@ def main():
 
     training_args = TrainingArguments(
         output_dir=output_model,
-        # --- training ---
         num_train_epochs=args.epochs,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
         learning_rate=2e-5,
         weight_decay=0.01,
         lr_scheduler_type="cosine",
-        # --- logging (LOSS!) ---
-        logging_strategy="steps",
-        logging_steps=50,
+        logging_strategy="epoch",
+        logging_steps=0.1,
         logging_first_step=True,
-        # --- evaluation ---
         eval_strategy="epoch",
-        eval_steps=0.5,
+        eval_steps=0.1,
         save_strategy="epoch",
-        save_steps=1,
+        save_steps=0.5,
         load_best_model_at_end=True,
         metric_for_best_model="f1",
-        # --- UX / infra ---
         report_to="wandb",
         seed=args.seed,
     )
