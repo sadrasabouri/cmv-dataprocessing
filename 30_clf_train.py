@@ -97,6 +97,7 @@ def main():
     train_texts, val_texts, train_labels, val_labels = train_test_split(
         df['text'].tolist(), df['label'].tolist(), test_size=0.2, random_state=42
     )
+    print(f"[size] Train: {len(train_labels)}, Test: {len(val_labels)}")
 
     tokenizer = BertTokenizer.from_pretrained(base_model)
     model = BertForSequenceClassification.from_pretrained(base_model, num_labels=2, device_map="auto")
