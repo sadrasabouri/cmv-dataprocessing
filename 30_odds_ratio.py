@@ -13,6 +13,7 @@ from tqdm import tqdm
 import json
 from utils.params import AGREEMENT_TERMS, DISAGREEMENT_TERMS
 from utils.functions import post_text_cleaning
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 
 CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
