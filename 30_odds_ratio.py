@@ -86,7 +86,7 @@ def main():
     parser = argparse.ArgumentParser(description="Process a file")
     parser.add_argument('data_path', type=str, help='path to the test dataset')
     parser.add_argument('output', type=str, help='name of inference output file')
-    parser.add_argument('model_name', type=str, help='the model used for inference', default="EleutherAI/pythia-160m")
+    parser.add_argument('--model_name', type=str, help='the model used for inference', default="EleutherAI/pythia-160m")
     
     args = parser.parse_args()
     
