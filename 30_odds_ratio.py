@@ -18,8 +18,8 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
 # MODEL_NAME = "gpt2"
-MODEL_NAME = "EleutherAI/pythia-160m" 
-# MODEL_NAME = "meta-llama/Llama-3.2-1B"
+# MODEL_NAME = "EleutherAI/pythia-160m" 
+MODEL_NAME = "meta-llama/Llama-3.2-1B"
 DELIM = "\n" + '-' * 10
 
 def format_text(row):
@@ -46,6 +46,7 @@ def compute_batch_log_likelihood(prompt, terms, model, tokenizer):
     # 1. Encode prompt (Leave 100 tokens room for the postfix)
     max_prompt_len = max_length - 100
     prompt_ids = tokenizer.encode(prompt + "OP:\n", add_special_tokens=False)
+    print(f"Initial prompt len: {len(prompt_ids)} --> cut down to {max_prompt_len}")
     prompt_ids = prompt_ids[-max_prompt_len:] # Truncate old context
     prompt_len = len(prompt_ids)
     
