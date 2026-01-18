@@ -22,8 +22,6 @@ def load_data(file_path):
 
 
 def format_text(row):
-    if has_non_in_conv(row):
-        return None
     author_map = {row['post_author']: 'OP'}
     counter = ord('A')
     
@@ -94,7 +92,6 @@ def main():
 
     df = load_data(data_path)
     df['text'] = df.apply(format_text, axis=1)
-    df = df.dropna().reset_index()
     df['label'] = df['is_op_delta'].astype(int)
 
     train_texts, val_texts, train_labels, val_labels = train_test_split(
