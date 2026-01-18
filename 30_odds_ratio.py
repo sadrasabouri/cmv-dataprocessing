@@ -18,8 +18,8 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
 # MODEL_NAME = "gpt2"
-# MODEL_NAME = "EleutherAI/pythia-160m" 
-MODEL_NAME = "meta-llama/Llama-3.2-1B"
+MODEL_NAME = "EleutherAI/pythia-160m" 
+# MODEL_NAME = "meta-llama/Llama-3.2-1B"
 DELIM = "\n" + '-' * 10
 
 def format_text(row):
@@ -38,7 +38,7 @@ def format_text(row):
     return text
 
 
-def compute_batch_log_likelihood(prompt, terms, model, tokenizer):
+def compute_batch_log_likelihood(prompt, terms, model, tokenizer, n_samples=100):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     max_length = getattr(model.config, "max_position_embeddings", 2048)
@@ -93,7 +93,7 @@ def main():
     
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, device_map="auto", cache_dir=CACHE_DIR)
-    model.eval()
+    model.train() # for having dropout random effect
 
     results_list = []
     with open(data_path, 'r') as f:
