@@ -18,7 +18,7 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
 # MODEL_NAME = "gpt2"
-MODEL_NAME = "EleutherAI/pythia-160m" 
+# MODEL_NAME = "EleutherAI/pythia-160m" 
 # MODEL_NAME = "meta-llama/Llama-3.2-1B"
 DELIM = "\n" + '-' * 10
 
@@ -41,9 +41,8 @@ def format_text(row):
 def compute_batch_log_likelihood(prompt, terms, model, tokenizer, n_samples=100):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    max_length = getattr(model.config, "max_position_embeddings", 2048)
-    
-    # 1. Encode prompt (Leave 100 tokens room for the postfix)
+    max_length = getattr(model.config, "max_position_embeddings", 1024)
+
     max_prompt_len = max_length - 100
     prompt_ids = tokenizer.encode(prompt + "OP:\n", add_special_tokens=False)
     print(f"Initial prompt len: {len(prompt_ids)} --> cut down to {max_prompt_len}")
@@ -61,38 +60,45 @@ def compute_batch_log_likelihood(prompt, terms, model, tokenizer, n_samples=100)
     
     attention_mask = (input_ids != tokenizer.pad_token_id).long().to(model.device)
 
+    sample_means = []    
     with torch.no_grad():
-        outputs = model(input_ids, attention_mask=attention_mask)
-        logits = outputs.logits
+        for _ in range(n_samples):
+            outputs = model(input_ids, attention_mask=attention_mask)
+            logits = outputs.logits
 
-    shift_logits = logits[:, :-1, :].contiguous()
-    shift_labels = input_ids[:, 1:].contiguous()
-    loss_fct = torch.nn.CrossEntropyLoss(reduction='none', ignore_index=tokenizer.pad_token_id)
-    loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
-    loss = loss.view(shift_labels.size())
+            shift_logits = logits[:, :-1, :].contiguous()
+            shift_labels = input_ids[:, 1:].contiguous()
+            
+            loss_fct = torch.nn.CrossEntropyLoss(reduction='none', ignore_index=tokenizer.pad_token_id)
+            loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
+            loss = loss.view(shift_labels.size())
 
-    mask = torch.zeros_like(shift_labels)
-    mask[:, (prompt_len - 1):] = 1
-    mask[shift_labels == tokenizer.pad_token_id] = 0    
-    per_sequence_log_prob = -(loss * mask).sum(dim=1)
-    return per_sequence_log_prob.mean().item(), per_sequence_log_prob.std().item()
+            mask = torch.zeros_like(shift_labels)
+            mask[:, (prompt_len - 1):] = 1
+            mask[shift_labels == tokenizer.pad_token_id] = 0    
+            # Log prob for each sequence in the batch for THIS sample pass
+            per_sequence_log_prob = -(loss * mask).sum(dim=1)
+            sample_means.append(per_sequence_log_prob.mean().item())
+    return np.mean(sample_means), np.std(sample_means)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Process a file")
     parser.add_argument('data_path', type=str, help='path to the test dataset')
     parser.add_argument('output', type=str, help='name of inference output file')
+    parser.add_argument('model_name', type=str, help='the model used for inference', default="EleutherAI/pythia-160m")
     
     args = parser.parse_args()
     
     # Initialize the Table object with columns
-    columns = ['prompt', 'log_ratio', 'std_log_ratio', 'predicted', 'actual']
+    columns = ['prompt', 'log_ratio', 'std_log_ratio', 'predicted', 'actual', 'prompt_len']
 
     data_path = args.data_path
     output_file = args.output
+    model_name = args.model_name
     
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, device_map="auto", cache_dir=CACHE_DIR)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", cache_dir=CACHE_DIR)
     model.train() # for having dropout random effect
 
     results_list = []
@@ -112,15 +118,16 @@ def main():
             std = np.sqrt(a_std**2 + d_std**2)
             predicted = lratio > 0
             actual = data['is_op_delta']
+            prompt_ntoken = len(tokenizer.encode(prompt, add_special_tokens=False))
 
-            row_data = [prompt, lratio, std, predicted, actual]
+            row_data = [prompt, lratio, std, predicted, actual, prompt_ntoken]
             results_list.append(row_data)
             print(lratio, std, predicted, actual, flush=True)
 
 
     # Summary metrics calculation
     results_df = pd.DataFrame.from_records(results_list, columns=columns)
-    results_df.to_csv(output_file, index=False)
+    results_df.drop(['prompt']).to_csv(output_file, index=False)
 
     accuracy = (results_df['predicted'] == results_df['actual']).mean()
     true_positives = ((results_df['predicted'] == True) & (results_df['actual'] == True)).sum()
