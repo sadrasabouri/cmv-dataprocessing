@@ -73,16 +73,21 @@ def main():
         output_dir="llama",
         logging_steps=10,
         per_device_train_batch_size=1,
-        eval_steps=50,
+        eval_steps=0.1,
         save_only_model=True,
         learning_rate=LEARNING_RATE,
         num_train_epochs=NUM_EPOCHS,
         gradient_checkpointing=True,
+        eval_strategy="epoch",
+        save_strategy="epoch",
+        save_steps=0.5,
+        save_total_limit=2,
         report_to="wandb",
         project="cmv-rlhf",
         lr_scheduler_type="cosine",
         warmup_ratio=0.1,
         run_name=model_name,
+        load_best_model_at_end=True,
     )
 
     # TODO: play around with config
