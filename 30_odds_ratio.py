@@ -12,7 +12,7 @@ import os
 from tqdm import tqdm
 import json
 from utils.params import AGREEMENT_TERMS, DISAGREEMENT_TERMS
-from utils.functions import post_text_cleaning
+from utils.functions import post_text_cleaning, has_non_in_conv
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 
@@ -23,6 +23,8 @@ MODEL_NAME = "EleutherAI/pythia-160m"
 DELIM = "\n" + '-' * 10
 
 def format_text(row):
+    if has_non_in_conv(row):
+        return None
     author_map = {row['post_author']: 'OP'}
     counter = ord('A')
     
@@ -100,7 +102,8 @@ def main():
                 continue
             data = json.loads(line)
             prompt = format_text(data)
-            
+            if prompt is None:
+                continue
             a_score, a_std = compute_batch_log_likelihood(prompt, AGREEMENT_TERMS, model, tokenizer)
             d_score, d_std = compute_batch_log_likelihood(prompt, DISAGREEMENT_TERMS, model, tokenizer)
             
