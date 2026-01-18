@@ -17,7 +17,9 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 
 CACHE_DIR = os.environ.get("MY_HF_CACHE", '.cache')
-MODEL_NAME = "gpt2"
+# MODEL_NAME = "gpt2"
+MODEL_NAME = "EleutherAI/pythia-160m" 
+# MODEL_NAME = "meta-llama/Llama-3.2-1B"
 DELIM = "\n" + '-' * 10
 
 def format_text(row):
@@ -35,31 +37,40 @@ def format_text(row):
 
 
 def compute_batch_log_likelihood(prompt, terms, model, tokenizer):
-    # We pad to the left or right; for Causal LM loss, right padding is standard
-    tokenizer.pad_token = tokenizer.eos_token
-    full_texts = [prompt + f"OP:\n{term}" for term in terms]
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    max_length = getattr(model.config, "max_position_embeddings", 2048)
     
-    inputs = tokenizer(full_texts, return_tensors="pt", padding=True).to(model.device)
-    input_ids = inputs["input_ids"]
-    attention_mask = inputs["attention_mask"]
-    prompt_enc = tokenizer(prompt + "OP:\n", add_special_tokens=False)
-    prompt_len = len(prompt_enc.input_ids)
+    # 1. Encode prompt (Leave 100 tokens room for the postfix)
+    max_prompt_len = max_length - 100
+    prompt_ids = tokenizer.encode(prompt + "OP:\n", add_special_tokens=False)
+    prompt_ids = prompt_ids[-max_prompt_len:] # Truncate old context
+    prompt_len = len(prompt_ids)
     
+    all_input_ids = []
+    for term in terms:
+        term_ids = tokenizer.encode(term, add_special_tokens=False)
+        combined = (prompt_ids + term_ids)[:max_length]
+        all_input_ids.append(torch.tensor(combined))
+    input_ids = torch.nn.utils.rnn.pad_sequence(
+        all_input_ids, batch_first=True, padding_value=tokenizer.pad_token_id
+    ).to(model.device)
+    
+    attention_mask = (input_ids != tokenizer.pad_token_id).long().to(model.device)
+
     with torch.no_grad():
         outputs = model(input_ids, attention_mask=attention_mask)
-        logits = outputs.logits  # Shape: [batch_size, sequence_length, vocab_size]
+        logits = outputs.logits
 
     shift_logits = logits[:, :-1, :].contiguous()
     shift_labels = input_ids[:, 1:].contiguous()
-    
-    loss_fct = torch.nn.CrossEntropyLoss(reduction='none')
+    loss_fct = torch.nn.CrossEntropyLoss(reduction='none', ignore_index=tokenizer.pad_token_id)
     loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
-    loss = loss.view(shift_labels.size()) # Shape: [batch_size, seq_len - 1]
+    loss = loss.view(shift_labels.size())
 
-    mask = torch.ones_like(shift_labels)
-    mask[:, :prompt_len-1] = 0 # Mask prompt
-    mask[attention_mask[:, 1:] == 0] = 0 # Mask padding
-    
+    mask = torch.zeros_like(shift_labels)
+    mask[:, (prompt_len - 1):] = 1
+    mask[shift_labels == tokenizer.pad_token_id] = 0    
     per_sequence_log_prob = -(loss * mask).sum(dim=1)
     return per_sequence_log_prob.mean().item(), per_sequence_log_prob.std().item()
 
