@@ -38,7 +38,7 @@ def format_text(row):
     return text
 
 
-def compute_batch_log_likelihood(prompt, terms, model, tokenizer, n_samples=30):
+def compute_batch_log_likelihood(prompt, terms, model, tokenizer, n_samples=10):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     max_length = getattr(model.config, "max_position_embeddings", 1024)
