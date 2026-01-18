@@ -111,8 +111,8 @@ def main():
             prompt = format_text(data)
             if prompt is None:
                 continue
-            a_score, a_std = compute_batch_log_likelihood(prompt, AGREEMENT_TERMS, model, tokenizer)
-            d_score, d_std = compute_batch_log_likelihood(prompt, DISAGREEMENT_TERMS, model, tokenizer)
+            a_score, a_std = compute_batch_log_likelihood(prompt, DISAGREEMENT_TERMS, model, tokenizer)
+            d_score, d_std = compute_batch_log_likelihood(prompt, AGREEMENT_TERMS, model, tokenizer)
             
             lratio = a_score - d_score
             std = np.sqrt(a_std**2 + d_std**2)
