@@ -17,5 +17,5 @@ NONE_ELEMENTS = [None, 'null', '[deleted]', '[removed]']
 POST_FOOTNOTE = r"(?:&amp;amp;gt;|&gt;|[\\>\s*])*.*?footnote.*from.*moderators?.*"
 ENDING_LINE = r"\n\n_____$"
 
-AGREEMENT_TERMS = ["I agree", "You're right"]
-DISAGREEMENT_TERMS = ["I disagree", "You're wrong"]
+AGREEMENT_TERMS = ["I agree", "You're right", "That makes sense"]
+DISAGREEMENT_TERMS = ["I disagree", "You're wrong", "That doesn't make sense"]
