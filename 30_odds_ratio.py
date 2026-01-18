@@ -126,7 +126,7 @@ def main():
 
     # Summary metrics calculation
     results_df = pd.DataFrame.from_records(results_list, columns=columns)
-    results_df.drop(['prompt']).to_csv(output_file, index=False)
+    results_df.drop(columns=['prompt']).to_csv(output_file, index=False)
 
     accuracy = (results_df['predicted'] == results_df['actual']).mean()
     true_positives = ((results_df['predicted'] == True) & (results_df['actual'] == True)).sum()
