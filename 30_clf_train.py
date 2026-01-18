@@ -10,7 +10,7 @@ import json
 import argparse
 import wandb
 import numpy as np
-from utils.functions import post_text_cleaning
+from utils.functions import post_text_cleaning, has_non_in_conv
 
 BASE_MODEL = 'bert-base-uncased'
 BATCH_SIZE = 128
@@ -26,6 +26,8 @@ def load_data(file_path):
 
 
 def format_text(row):
+    if has_non_in_conv(row):
+        return None
     author_map = {row['post_author']: 'OP'}
     counter = ord('A')
     
@@ -92,6 +94,7 @@ def main():
 
     df = load_data(data_path)
     df['text'] = df.apply(format_text, axis=1)
+    df = df.dropna().reset_index()
     df['label'] = df['is_op_delta'].astype(int)
 
     train_texts, val_texts, train_labels, val_labels = train_test_split(
