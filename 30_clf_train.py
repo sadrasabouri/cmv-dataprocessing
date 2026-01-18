@@ -2,7 +2,7 @@
 # TODO: if memory issue persist we do relational dataset
 import pandas as pd
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from transformers import BertTokenizer, BertForSequenceClassification
 from transformers import TrainingArguments, Trainer
 from sklearn.model_selection import train_test_split
@@ -11,10 +11,6 @@ import argparse
 import wandb
 import numpy as np
 from utils.functions import post_text_cleaning, has_non_in_conv
-
-BASE_MODEL = 'bert-base-uncased'
-BATCH_SIZE = 128
-EPOCHS = 3
 
 
 def load_data(file_path):
@@ -84,13 +80,17 @@ def main():
     parser = argparse.ArgumentParser(description="Train a classifier for predicting delta")
 
     parser.add_argument('data_path', type=str, help='the cmv_delta.jsonl file')
-    parser.add_argument('model_name', type=str, help='name of model output file')
+    parser.add_argument('output_model', type=str, help='name of model output file')
+    parser.add_argument('--model_name', type=str, help='name of base model', default="bert-base-uncased")
     parser.add_argument('--seed', type=int, help='random generation seed', default=42)
+    parser.add_argument('--batch_size', type=int, help="batch size", default=32)
+    parser.add_argument('--epochs', type=int, help="batch size", default=3)
 
     args = parser.parse_args()
 
     data_path = args.data_path
-    model_name = args.model_name
+    output_model = args.output_model
+    base_model = args.model_name
 
     df = load_data(data_path)
     df['text'] = df.apply(format_text, axis=1)
@@ -101,29 +101,30 @@ def main():
         df['text'].tolist(), df['label'].tolist(), test_size=0.2, random_state=42
     )
 
-    tokenizer = BertTokenizer.from_pretrained(BASE_MODEL)
-    model = BertForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2, device_map="auto")
+    tokenizer = BertTokenizer.from_pretrained(base_model)
+    model = BertForSequenceClassification.from_pretrained(base_model, num_labels=2, device_map="auto")
 
     train_dataset = DeltaDataset(train_texts, train_labels, tokenizer)
     val_dataset = DeltaDataset(val_texts, val_labels, tokenizer)
 
     training_args = TrainingArguments(
-        output_dir=model_name,
+        output_dir=output_model,
         # --- training ---
-        num_train_epochs=EPOCHS,
-        per_device_train_batch_size=BATCH_SIZE,
-        per_device_eval_batch_size=BATCH_SIZE,
+        num_train_epochs=args.epochs,
+        per_device_train_batch_size=args.batch_size,
+        per_device_eval_batch_size=args.batch_size,
         learning_rate=2e-5,
         weight_decay=0.01,
+        lr_scheduler_type="cosine",
         # --- logging (LOSS!) ---
         logging_strategy="steps",
         logging_steps=50,
         logging_first_step=True,
         # --- evaluation ---
         eval_strategy="epoch",
-        eval_steps=0.01,
+        eval_steps=0.5,
         save_strategy="epoch",
-        save_steps=0.05,
+        save_steps=1,
         load_best_model_at_end=True,
         metric_for_best_model="f1",
         # --- UX / infra ---
@@ -141,8 +142,8 @@ def main():
 
     with wandb.init(project="cmv-clf") as run:
         trainer.train()
-    trainer.save_model(model_name)
-    tokenizer.save_pretrained(model_name)
+    trainer.save_model(output_model)
+    tokenizer.save_pretrained(output_model)
 
 
 if __name__ == "__main__":
