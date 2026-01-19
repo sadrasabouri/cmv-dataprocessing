@@ -47,7 +47,7 @@ class SampleLoggingCallback(TrainerCallback):
         all_targets = [] # also all_chosens
         all_outputs = []
         all_rejecteds = []
-        tokenizer = kwargs.get("tokenizer")
+        tokenizer = kwargs.get("processing_class")
 
         if self.training_kind == "clf":
             input_texts = tokenizer.batch_decode(batch[self.input_ids_key_name], skip_special_tokens=True)        

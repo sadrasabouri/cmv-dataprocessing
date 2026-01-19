@@ -136,7 +136,7 @@ def main():
         eval_dataset=val_dataset,
         data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
         compute_metrics=compute_metrics,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         callbacks=[StopOnZeroLossCallback,
                    SampleLoggingCallback("clf", eval_max_new_tokens=100)]
     )
