@@ -94,9 +94,6 @@ def main():
         torch_dtype=torch.bfloat16
     )
     model.config.pad_token_id = tokenizer.pad_token_id
-    processor = AutoProcessor.from_pretrained(args.model_name)
-    processor._tokenizer.pad_token = tokenizer.pad_token
-    processor._tokenizer.padding_side = "left"
 
     peft_config = LoraConfig(
         task_type=TaskType.SEQ_CLS, 
@@ -139,7 +136,6 @@ def main():
         eval_dataset=val_dataset,
         data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
         compute_metrics=compute_metrics,
-        processing_class=processor,
         tokenizer=tokenizer,
         callbacks=[StopOnZeroLossCallback,
                    SampleLoggingCallback("clf", eval_max_new_tokens=100)]

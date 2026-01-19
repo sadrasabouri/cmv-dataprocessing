@@ -47,10 +47,10 @@ class SampleLoggingCallback(TrainerCallback):
         all_targets = [] # also all_chosens
         all_outputs = []
         all_rejecteds = []
-        processor = kwargs.get("processing_class")
+        tokenizer = kwargs.get("tokenizer")
 
         if self.training_kind == "clf":
-            input_texts = processor.batch_decode(batch[self.input_ids_key_name], skip_special_tokens=True)        
+            input_texts = tokenizer.batch_decode(batch[self.input_ids_key_name], skip_special_tokens=True)        
             all_input_texts.extend(input_texts)        
             targets = batch[self.output_ids_key_name]
             all_targets.extend(targets.detach().cpu().numpy().tolist())
@@ -72,32 +72,32 @@ class SampleLoggingCallback(TrainerCallback):
                     input_ids = batch[self.input_ids_key_name][j][:start_idx]
                 elif self.training_kind in ["dpo"]:
                     input_ids = batch[self.input_ids_key_name][j] # start_idx is always 0
-                text = processor.decode(input_ids, skip_special_tokens=True)
+                text = tokenizer.decode(input_ids, skip_special_tokens=True)
                 real_input_texts.append(text)
                 if self.training_kind in ["sft", "dpo"]:
                     output_ids = batch[self.output_ids_key_name][j][start_idx:]
                 elif self.training_kind in ["pre"]:
                     output_ids = batch[self.output_ids_key_name][j][start_idx:start_idx+self.eval_max_new_tokens]
-                output_text = processor.decode(output_ids[output_ids != -100], skip_special_tokens=True)
+                output_text = tokenizer.decode(output_ids[output_ids != -100], skip_special_tokens=True)
                 real_targets.append(output_text)
                 if self.training_kind in ["dpo"]:
                     rejected_ids = batch[self.rejected_ids_key_name][j][start_idx:]
-                    rejected_text = processor.decode(rejected_ids[rejected_ids != -100], skip_special_tokens=True)
+                    rejected_text = tokenizer.decode(rejected_ids[rejected_ids != -100], skip_special_tokens=True)
                     real_rejecteds.append(rejected_text)
                 else:
                     real_rejecteds.append("")
             all_input_texts.extend(real_input_texts)
             all_targets.extend(real_targets)
             all_rejecteds.extend(real_rejecteds)
-            current_padding_side = processor.padding_side
-            processor.padding_side = "left"
-            inputs = processor(all_input_texts, return_tensors="pt", padding=True).to(model.device)
-            processor.padding_side = current_padding_side
+            current_padding_side = tokenizer.padding_side
+            tokenizer.padding_side = "left"
+            inputs = tokenizer(all_input_texts, return_tensors="pt", padding=True).to(model.device)
+            tokenizer.padding_side = current_padding_side
             input_length = inputs['input_ids'].shape[1]
             gen_kwargs = {"max_new_tokens": self.eval_max_new_tokens, "do_sample": False}
             outputs = model.generate(**inputs, **gen_kwargs)
             outputs = outputs[:, input_length:]
-            output_texts = processor.batch_decode(outputs, skip_special_tokens=True)                                                                                                                                        
+            output_texts = tokenizer.batch_decode(outputs, skip_special_tokens=True)                                                                                                                                        
             all_outputs.extend(output_texts)
         for j, values in enumerate(zip(all_input_texts, all_targets, all_rejecteds, all_outputs)):
             input_text, target, rejected, output = values
