@@ -10,6 +10,7 @@ import argparse
 import wandb
 import numpy as np
 from utils.functions import post_text_cleaning
+from utils.callbacks import StopOnZeroLossCallback
 
 
 def load_data(file_path):
@@ -113,7 +114,7 @@ def main():
         weight_decay=0.01,
         lr_scheduler_type="cosine",
         logging_strategy="epoch",
-        logging_steps=0.1,
+        logging_steps=0.01,
         logging_first_step=True,
         eval_strategy="epoch",
         eval_steps=0.1,
@@ -131,6 +132,7 @@ def main():
         eval_dataset=val_dataset,
         tokenizer=tokenizer,
         compute_metrics=compute_metrics,
+        callbacks=[StopOnZeroLossCallback]
     )
 
     with wandb.init(project="cmv-clf") as run:
