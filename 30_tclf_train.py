@@ -51,7 +51,7 @@ class DeltaDataset(Dataset):
             self.texts[idx],
             truncation=True,
             max_length=self.max_length,
-            padding=True,
+            padding=False, # Collator will handle padding
         )
         return {
             'input_ids': encoding['input_ids'],
@@ -95,6 +95,8 @@ def main():
     )
     model.config.pad_token_id = tokenizer.pad_token_id
     processor = AutoProcessor.from_pretrained(args.model_name)
+    processor.tokenizer.pad_token = tokenizer.pad_token
+    processor.tokenizer.padding_side = "left"
 
     peft_config = LoraConfig(
         task_type=TaskType.SEQ_CLS, 
@@ -135,6 +137,7 @@ def main():
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
+        data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
         compute_metrics=compute_metrics,
         processing_class=processor,
         callbacks=[StopOnZeroLossCallback,
