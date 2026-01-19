@@ -51,7 +51,7 @@ class DeltaDataset(Dataset):
             self.texts[idx],
             truncation=True,
             max_length=self.max_length,
-            padding=False, # Collator will handle padding
+            padding=True,
         )
         return {
             'input_ids': encoding['input_ids'],
@@ -135,7 +135,6 @@ def main():
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=val_dataset,
-        data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
         compute_metrics=compute_metrics,
         processing_class=processor,
         callbacks=[StopOnZeroLossCallback,
