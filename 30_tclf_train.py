@@ -137,7 +137,7 @@ def main():
         data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
         compute_metrics=compute_metrics,
         processing_class=tokenizer,
-        callbacks=[StopOnZeroLossCallback,
+        callbacks=[StopOnZeroLossCallback(),
                    SampleLoggingCallback("clf", eval_max_new_tokens=100)]
     )
 

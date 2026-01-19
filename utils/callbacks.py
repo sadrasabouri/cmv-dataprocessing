@@ -16,11 +16,11 @@ class StopOnZeroLossCallback(TrainerCallback):
         # Check if the training loss is available and is approximately zero
         if state.log_history:
             last_log = state.log_history[-1]
-            for k in ["loss", "train_loss"]:
-                if k in last_log and last_log[k] < ZERO_LOSS:
-                    print(f"Training loss reached zero ({last_log[k]}), stopping training...")
-                    control.should_training_stop = True
-        print(state.log_history)
+            print(last_log)
+            print(last_log["loss"], ZERO_LOSS)
+            if "loss" in last_log and last_log["loss"] < ZERO_LOSS:
+                print(f"Training loss reached zero ({last_log["loss"]}), stopping training...")
+                control.should_training_stop = True
         return control
 
 
@@ -41,7 +41,7 @@ class SampleLoggingCallback(TrainerCallback):
             base_columns.extend(["target_output", "model_output"])
         elif self.training_kind in ["dpo"]:
             base_columns.extend(["chosen_output", "rejected_output", "model_output"])
-        self.table = wandb.Table(columns=base_columns)
+        self.table = wandb.Table(columns=base_columns, log_mode="MUTABLE")
 
     def on_evaluate(self, args, state, control, model=None, eval_dataloader=None, **kwargs):
         batch = next(iter(eval_dataloader))
@@ -110,6 +110,4 @@ class SampleLoggingCallback(TrainerCallback):
                 input_text, target, rejected, output = values
                 self.table.add_data(state.global_step, j, input_text, target, rejected, output)
         wandb.log({"Sample Outputs": self.table})
-        print(all_outputs)
-        print(self.table)
         return
