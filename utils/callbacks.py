@@ -15,13 +15,12 @@ class StopOnZeroLossCallback(TrainerCallback):
     def on_step_end(self, args, state, control, **kwargs):
         # Check if the training loss is available and is approximately zero
         if state.log_history:
-            last_log = state.log_history[-1]
-            if "loss" not in last_log and len(last_log) > 0: # it's eval
-                last_log = state.log_history[-2]
-            print(last_log)
-            print(last_log.get("loss"), ZERO_LOSS)
-            if "loss" in last_log and last_log["loss"] < ZERO_LOSS:
-                print(f"Training loss reached zero ({last_log['loss']}), stopping training...")
+            the_loss = 1 / ZERO_LOSS # large number
+            for log in state.log_history[-2:]: # last one could be eval
+                if "loss" in log:
+                    the_loss = log["loss"]
+            if the_loss < ZERO_LOSS:
+                print(f"Training loss reached zero ({the_loss}), stopping training...")
                 control.should_training_stop = True
         return control
 
