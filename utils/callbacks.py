@@ -39,7 +39,7 @@ class SampleLoggingCallback(TrainerCallback):
             base_columns.extend(["target_output", "model_output"])
         elif self.training_kind in ["dpo"]:
             base_columns.extend(["chosen_output", "rejected_output", "model_output"])
-        self.table = wandb.Table(columns=base_columns, log_mode="MUTABLE")
+        self.table = wandb.Table(columns=base_columns)
 
     def on_evaluate(self, args, state, control, model=None, eval_dataloader=None, **kwargs):
         batch = next(iter(eval_dataloader))

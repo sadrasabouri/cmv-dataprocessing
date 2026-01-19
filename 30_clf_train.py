@@ -2,7 +2,7 @@
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
-from transformers import BertTokenizer, BertForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from transformers import TrainingArguments, Trainer
 from sklearn.model_selection import train_test_split
 import json
@@ -99,8 +99,8 @@ def main():
     )
     print(f"[size] Train: {len(train_labels)}, Test: {len(val_labels)}")
 
-    tokenizer = BertTokenizer.from_pretrained(base_model)
-    model = BertForSequenceClassification.from_pretrained(base_model, num_labels=2, device_map="auto")
+    tokenizer = AutoTokenizer.from_pretrained(base_model)
+    model = AutoModelForSequenceClassification.from_pretrained(base_model, num_labels=2, device_map="auto")
     max_length = model.config.max_position_embeddings
     print(f"Model loaded with max length: {max_length}")
 
