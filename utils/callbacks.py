@@ -20,6 +20,7 @@ class StopOnZeroLossCallback(TrainerCallback):
                 if k in last_log and last_log[k] < ZERO_LOSS:
                     print(f"Training loss reached zero ({last_log[k]}), stopping training...")
                     control.should_training_stop = True
+        print(state.log_history)
         return control
 
 
@@ -109,4 +110,6 @@ class SampleLoggingCallback(TrainerCallback):
                 input_text, target, rejected, output = values
                 self.table.add_data(state.global_step, j, input_text, target, rejected, output)
         wandb.log({"Sample Outputs": self.table})
+        print(all_outputs)
+        print(self.table)
         return
