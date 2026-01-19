@@ -103,6 +103,8 @@ def main():
     model = AutoModelForSequenceClassification.from_pretrained(base_model, num_labels=2, device_map="auto")
     max_length = model.config.max_position_embeddings
     print(f"Model loaded with max length: {max_length}")
+    if max_length >= 2048:
+        max_length = 2048
 
     train_dataset = DeltaDataset(train_texts, train_labels, tokenizer, max_length)
     val_dataset = DeltaDataset(val_texts, val_labels, tokenizer, max_length)
