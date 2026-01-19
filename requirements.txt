@@ -7,5 +7,5 @@ torch==2.6.0
 tqdm==4.67.1
 transformers==4.57.1
 trl==0.25.0
-wandb==0.16.6
+wandb==0.24.0
 scikit-learn==1.7.2
