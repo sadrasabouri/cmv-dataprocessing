@@ -7,7 +7,7 @@ import wandb
 import numpy as np
 from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoProcessor
 from transformers import TrainingArguments, Trainer, DataCollatorWithPadding
 from peft import LoraConfig, get_peft_model, TaskType
 from utils.functions import post_text_cleaning
@@ -94,6 +94,7 @@ def main():
         torch_dtype=torch.bfloat16
     )
     model.config.pad_token_id = tokenizer.pad_token_id
+    processor = AutoProcessor.from_pretrained(args.model_name)
 
     peft_config = LoraConfig(
         task_type=TaskType.SEQ_CLS, 
@@ -136,6 +137,7 @@ def main():
         eval_dataset=val_dataset,
         data_collator=DataCollatorWithPadding(tokenizer=tokenizer),
         compute_metrics=compute_metrics,
+        processing_class=processor,
         callbacks=[StopOnZeroLossCallback,
                    SampleLoggingCallback("clf", eval_max_new_tokens=100)]
     )
