@@ -101,7 +101,8 @@ class SampleLoggingCallback(TrainerCallback):
             output_texts = tokenizer.batch_decode(outputs, skip_special_tokens=True)                                                                                                                                        
             all_outputs.extend(output_texts)
         if self.training_kind in ["clf", "sft", "pre"]:
-            for j, output in enumerate(all_outputs):    
+            for j, values in enumerate(all_input_texts, all_targets, all_outputs):
+                input_text, target, output = values    
                 self.table.add_data(state.global_step, j, input_text, target, output)
         else:
             for j, values in enumerate(zip(all_input_texts, all_targets, all_rejecteds, all_outputs)):
