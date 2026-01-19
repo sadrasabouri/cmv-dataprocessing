@@ -95,8 +95,8 @@ def main():
     )
     model.config.pad_token_id = tokenizer.pad_token_id
     processor = AutoProcessor.from_pretrained(args.model_name)
-    processor.tokenizer.pad_token = tokenizer.pad_token
-    processor.tokenizer.padding_side = "left"
+    processor._tokenizer.pad_token = tokenizer.pad_token
+    processor._tokenizer.padding_side = "left"
 
     peft_config = LoraConfig(
         task_type=TaskType.SEQ_CLS, 
