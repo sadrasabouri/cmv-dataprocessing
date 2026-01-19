@@ -8,7 +8,7 @@ from transformers import TrainerCallback
 import wandb
 
 
-ZERO_LOSS = 1e-9
+ZERO_LOSS = 1e-2
 
 
 class StopOnZeroLossCallback(TrainerCallback):
