@@ -8,7 +8,7 @@ from transformers import TrainerCallback
 import wandb
 
 
-ZERO_LOSS = 1e-2
+ZERO_LOSS = 1e-3
 
 
 class StopOnZeroLossCallback(TrainerCallback):
@@ -16,6 +16,8 @@ class StopOnZeroLossCallback(TrainerCallback):
         # Check if the training loss is available and is approximately zero
         if state.log_history:
             last_log = state.log_history[-1]
+            if "loss" not in last_log and len(last_log) > 0: # it's eval
+                last_log = state.log_history[-2]
             print(last_log)
             print(last_log.get("loss"), ZERO_LOSS)
             if "loss" in last_log and last_log["loss"] < ZERO_LOSS:
