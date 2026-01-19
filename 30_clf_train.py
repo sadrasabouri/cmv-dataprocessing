@@ -101,9 +101,11 @@ def main():
 
     tokenizer = BertTokenizer.from_pretrained(base_model)
     model = BertForSequenceClassification.from_pretrained(base_model, num_labels=2, device_map="auto")
+    max_length = model.config.max_position_embeddings
+    print(f"Model loaded with max length: {max_length}")
 
-    train_dataset = DeltaDataset(train_texts, train_labels, tokenizer)
-    val_dataset = DeltaDataset(val_texts, val_labels, tokenizer)
+    train_dataset = DeltaDataset(train_texts, train_labels, tokenizer, max_length)
+    val_dataset = DeltaDataset(val_texts, val_labels, tokenizer, max_length)
 
     training_args = TrainingArguments(
         output_dir=output_model,
