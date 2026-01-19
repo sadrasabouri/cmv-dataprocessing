@@ -19,7 +19,7 @@ class StopOnZeroLossCallback(TrainerCallback):
             print(last_log)
             print(last_log["loss"], ZERO_LOSS)
             if "loss" in last_log and last_log["loss"] < ZERO_LOSS:
-                print(f"Training loss reached zero ({last_log["loss"]}), stopping training...")
+                print(f"Training loss reached zero ({last_log['loss']}), stopping training...")
                 control.should_training_stop = True
         return control
 
